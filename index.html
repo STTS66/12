@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Roode - Editor for RuPL</title>
+    <style>
+        :root {
+            --bg-color: #1e1e1e;
+            --sidebar-color: #252526;
+            --gutter-bg: #1e1e1e;
+            --gutter-text: #858585;
+            --text-color: #cccccc;
+            --accent-color: #007acc;
+            --header-height: 40px;
+            --hover-color: #2a2d2e;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Consolas', 'Courier New', monospace;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* --- HEADER --- */
+        header {
+            height: var(--header-height);
+            background-color: #3c3c3c;
+            display: flex;
+            align-items: center;
+            padding: 0 15px;
+            justify-content: space-between;
+            font-size: 14px;
+            user-select: none;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+        }
+
+        .logo { font-weight: bold; color: white; margin-right: 20px; }
+        
+        .controls button {
+            background-color: var(--accent-color);
+            border: none;
+            color: white;
+            padding: 5px 12px;
+            cursor: pointer;
+            margin-left: 10px;
+            border-radius: 3px;
+            font-size: 12px;
+        }
+        .controls button:hover { background-color: #005f9e; }
+        .controls button.secondary { background-color: #444; }
+
+        /* --- WORKSPACE --- */
+        .workspace {
+            display: flex;
+            flex: 1;
+            height: calc(100vh - var(--header-height) - 25px);
+        }
+
+        /* --- SIDEBAR (EXPLORER) --- */
+        .sidebar {
+            width: 250px;
+            min-width: 200px;
+            background-color: var(--sidebar-color);
+            border-right: 1px solid #333;
+            display: flex;
+            flex-direction: column;
+        }
+        .explorer-title {
+            padding: 10px; font-size: 11px; text-transform: uppercase; 
+            font-weight: bold; color: #bbb; display: flex; justify-content: space-between;
+        }
+        .file-list { list-style: none; padding: 0; margin: 0; overflow-y: auto; }
+        .file-item {
+            padding: 0; cursor: pointer; display: flex; 
+            align-items: center; justify-content: space-between;
+            font-size: 13px; color: #bbb;
+        }
+        .file-item:hover { background-color: var(--hover-color); color: white; }
+        .file-item.active { background-color: #37373d; border-left: 2px solid var(--accent-color); color: white; }
+        
+        .file-name-span {
+            flex: 1; padding: 6px 10px 6px 15px; white-space: nowrap; 
+            overflow: hidden; text-overflow: ellipsis;
+        }
+        .delete-btn {
+            width: 30px; height: 100%; display: flex; align-items: center; justify-content: center;
+            color: #666; font-size: 14px; opacity: 0; transition: 0.2s;
+        }
+        .file-item:hover .delete-btn { opacity: 1; }
+        .delete-btn:hover { color: #ff5f5f; font-weight: bold; }
+        
+        .icon-prsh::before { content: "📄"; margin-right: 6px;}
+        .icon-prshx::before { content: "🧩"; margin-right: 6px;}
+
+        /* --- EDITOR AREA --- */
+        .editor-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background-color: var(--bg-color);
+        }
+
+        .tab-bar {
+            height: 35px; background-color: #2d2d2d;
+            display: flex; align-items: center;
+        }
+        .tab {
+            background-color: var(--bg-color); padding: 0 15px; height: 100%;
+            display: flex; align-items: center; font-size: 13px;
+            border-top: 1px solid var(--accent-color); color: white;
+        }
+
+        /* ВАЖНО: Область редактирования + Нумерация */
+        .editor-wrapper {
+            flex: 1;
+            display: flex;
+            position: relative;
+            overflow: hidden; /* Скрываем лишние скроллы */
+        }
+
+        /* Колонка номеров строк */
+        .gutter {
+            width: 50px; /* Ширина колонки номеров */
+            background-color: var(--sidebar-color);
+            color: var(--gutter-text);
+            text-align: right;
+            padding: 10px 5px;
+            box-sizing: border-box;
+            border-right: 1px solid #333;
+            user-select: none;
+            overflow: hidden;
+            
+            font-family: 'Consolas', monospace;
+            font-size: 14px;
+            line-height: 1.5; /* Высота строки должна совпадать с textarea */
+        }
+
+        /* Само поле ввода */
+        textarea {
+            flex: 1;
+            background-color: var(--bg-color);
+            color: #d4d4d4;
+            border: none;
+            resize: none;
+            padding: 10px;
+            
+            font-family: 'Consolas', monospace;
+            font-size: 14px;
+            line-height: 1.5; /* ВАЖНО: такая же высота строки как у gutter */
+            outline: none;
+            
+            /* ПЕРЕНОС СТРОК ВКЛЮЧЕН: */
+            white-space: pre-wrap; 
+            overflow-wrap: break-word; 
+            overflow-y: auto; /* Вертикальный скролл */
+        }
+
+        /* --- FOOTER --- */
+        footer {
+            height: 25px; background-color: var(--accent-color);
+            display: flex; align-items: center; padding: 0 15px;
+            font-size: 12px; color: white; justify-content: space-between;
+        }
+
+        /* --- MODAL --- */
+        .overlay {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5); justify-content: center; align-items: center; z-index: 1000;
+        }
+        .modal {
+            background: #252526; padding: 20px; border-radius: 5px; width: 300px;
+            text-align: center; box-shadow: 0 0 15px rgba(0,0,0,0.5);
+        }
+        .modal input {
+            width: 100%; padding: 5px; margin: 10px 0;
+            background: #3c3c3c; border: 1px solid #555; color: white;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="logo">Roode <span style="font-size:10px;opacity:0.6;">v1.2 (Wrap)</span></div>
+        <div class="controls">
+            <button class="secondary" onclick="openFolder()">📂 Открыть папку</button>
+            <button class="secondary" onclick="createNewFilePrompt()">📄 Новый файл</button>
+            <button onclick="saveCurrentFile()">💾 Сохранить</button>
+            <button class="secondary" onclick="exportAsTxt()">⬇ Экспорт .txt</button>
+        </div>
+    </header>
+
+    <div class="workspace">
+        <div class="sidebar">
+            <div class="explorer-title">
+                ФАЙЛЫ
+                <span style="cursor:pointer;" onclick="listFiles()" title="Обновить">↻</span>
+            </div>
+            <ul class="file-list" id="fileList">
+                <li style="padding: 20px; color: #666; font-size: 12px; text-align: center;">Выберите папку...</li>
+            </ul>
+        </div>
+
+        <div class="editor-container">
+            <div class="tab-bar">
+                <div class="tab" id="activeTabName">Welcome</div>
+            </div>
+            
+            <div class="editor-wrapper">
+                <!-- Блок для номеров строк -->
+                <div id="gutter" class="gutter">1</div>
+                
+                <!-- Редактор кода -->
+                <textarea id="editor" spellcheck="false" placeholder="Напишите код RuPL...">привет ты теперь не chatGPT {
+    
+    // Внимание!
+    // Длинные строки текста теперь будут переноситься на новую строку автоматически, а не уходить вправо.
+    
+    // Попробуй написать длинный текст для проверки...
+}</textarea>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        <div id="statusMessage">Ожидание...</div>
+        <div id="lineInfo">Ln 1, Col 1</div>
+    </footer>
+
+    <!-- Модальное окно -->
+    <div class="overlay" id="newFileModal">
+        <div class="modal">
+            <h3>Новый файл</h3>
+            <input type="text" id="newFileName" placeholder="имя_файла.PRSH">
+            <br><br>
+            <button onclick="createNewFile()">Создать</button>
+            <button class="secondary" onclick="closeModal()">Отмена</button>
+        </div>
+    </div>
+
+    <script>
+        let directoryHandle = null;
+        let fileHandle = null;
+
+        const editor = document.getElementById('editor');
+        const gutter = document.getElementById('gutter');
+        const fileListEl = document.getElementById('fileList');
+        const activeTabName = document.getElementById('activeTabName');
+        const statusMessage = document.getElementById('statusMessage');
+        const lineInfo = document.getElementById('lineInfo');
+
+        const RUPL_TEMPLATE = `привет ты теперь не chatGPT {
+    
+    // Пиши свои инструкции тут...
+
+}`;
+
+        // === ГЛАВНЫЕ ФУНКЦИИ ИНТЕРФЕЙСА ===
+
+        // Функция обновления номеров строк
+        function updateLineNumbers() {
+            // Считаем количество переносов строк (\n)
+            const val = editor.value;
+            const lineCount = val.split('\n').length;
+            
+            // Генерируем HTML для колонки номеров
+            // Используем .join('<br>') чтобы каждый номер был с новой строки
+            const numbersArr = Array.from({length: lineCount}, (_, i) => i + 1);
+            gutter.innerHTML = numbersArr.join('<br>');
+        }
+
+        // Функция обновления позиции скролла
+        function syncScroll() {
+            // Когда крутим редактор, номера тоже крутятся
+            gutter.scrollTop = editor.scrollTop;
+        }
+
+        // Отслеживаем курсор для статистики (Ln/Col)
+        editor.addEventListener('input', () => {
+            updateLineNumbers();
+        });
+        
+        // Ключевое событие для перерисовки номеров, если пользователь нажал Enter
+        editor.addEventListener('keydown', () => {
+            setTimeout(updateLineNumbers, 0); 
+        });
+
+        editor.addEventListener('scroll', syncScroll);
+
+        editor.addEventListener('keyup', () => {
+           // Определение строки и столбца для футера
+           const text = editor.value;
+           const selectionPoint = editor.selectionStart;
+           const subStr = text.substring(0, selectionPoint);
+           const lines = subStr.split('\n');
+           const currentLine = lines.length;
+           const currentCol = lines[lines.length - 1].length + 1;
+           lineInfo.textContent = `Ln ${currentLine}, Col ${currentCol}`;
+        });
+
+        // Инициализация при загрузке
+        updateLineNumbers();
+
+
+        // === ЛОГИКА ФАЙЛОВОЙ СИСТЕМЫ (БЕЗ ИЗМЕНЕНИЙ ЛОГИКИ, НО ПРИЧЕСАНА) ===
+
+        async function openFolder() {
+            try {
+                directoryHandle = await window.showDirectoryPicker();
+                statusMessage.textContent = "Папка: " + directoryHandle.name;
+                await listFiles();
+            } catch (err) {
+                if (err.name !== 'AbortError') alert("Нужен ПК и Chrome/Edge для доступа к файлам.");
+            }
+        }
+
+        async function listFiles() {
+            if(!directoryHandle) return;
+            fileListEl.innerHTML = '';
+            
+            let filesFound = false;
+
+            for await (const entry of directoryHandle.values()) {
+                if (entry.kind === 'file') {
+                    const ext = entry.name.split('.').pop().toUpperCase();
+                    if (ext === 'PRSH' || ext === 'PRSHX') {
+                        filesFound = true;
+                        
+                        const li = document.createElement('li');
+                        li.className = 'file-item';
+                        if(fileHandle && fileHandle.name === entry.name) li.classList.add('active');
+
+                        const nameSpan = document.createElement('span');
+                        nameSpan.className = 'file-name-span';
+                        nameSpan.innerHTML = `<span class="icon icon-${ext.toLowerCase()}"></span> ${entry.name}`;
+                        nameSpan.onclick = () => openFile(entry);
+
+                        const delBtn = document.createElement('span');
+                        delBtn.className = 'delete-btn';
+                        delBtn.innerText = '✕'; 
+                        delBtn.title = 'Удалить';
+                        delBtn.onclick = (e) => deleteFile(entry, e);
+
+                        li.appendChild(nameSpan);
+                        li.appendChild(delBtn);
+                        fileListEl.appendChild(li);
+                    }
+                }
+            }
+            if(!filesFound) fileListEl.innerHTML = '<li style="padding:20px;color:#666;font-size:12px;text-align:center">Нет файлов RuPL</li>';
+        }
+
+        async function openFile(entry) {
+            try {
+                const file = await entry.getFile();
+                const text = await file.text();
+                
+                fileHandle = entry;
+                editor.value = text;
+                activeTabName.textContent = entry.name;
+                statusMessage.textContent = "Файл открыт";
+                
+                updateLineNumbers(); // Пересчитать строки
+                
+                listFiles(); // Обновить подсветку
+            } catch (e) {
+                console.error(e);
+                alert("Ошибка чтения");
+            }
+        }
+
+        async function saveCurrentFile() {
+            if (!fileHandle) return alert("Файл не выбран");
+            
+            const code = editor.value.trim();
+            if (!code.toLowerCase().startsWith("привет ты теперь не chatgpt") || !code.includes("{") || !code.endsWith("}")) {
+                if(!confirm("Синтаксис выглядит неверным. Всё равно сохранить?")) return;
+            }
+
+            try {
+                const writable = await fileHandle.createWritable();
+                await writable.write(editor.value);
+                await writable.close();
+                statusMessage.textContent = "Успешно сохранено!";
+            } catch (e) {
+                alert("Ошибка сохранения.");
+            }
+        }
+
+        async function deleteFile(entry, e) {
+            e.stopPropagation();
+            if(!confirm("Удалить " + entry.name + "?")) return;
+            try {
+                await directoryHandle.removeEntry(entry.name);
+                if(fileHandle && fileHandle.name === entry.name) {
+                    editor.value = "";
+                    fileHandle = null;
+                    activeTabName.textContent = "...";
+                    updateLineNumbers();
+                }
+                listFiles();
+            } catch(e) {
+                alert("Не удалось удалить.");
+            }
+        }
+
+        function createNewFilePrompt() {
+            if(!directoryHandle) return alert("Сначала откройте папку");
+            document.getElementById('newFileModal').style.display = 'flex';
+        }
+        
+        function closeModal() { document.getElementById('newFileModal').style.display = 'none'; }
+
+        async function createNewFile() {
+            let name = document.getElementById('newFileName').value;
+            if(!name) return;
+            if(!name.toUpperCase().match(/\.PRSHX?$/)) name += ".PRSH";
+
+            try {
+                const newHandle = await directoryHandle.getFileHandle(name, {create: true});
+                const writable = await newHandle.createWritable();
+                await writable.write(RUPL_TEMPLATE);
+                await writable.close();
+                closeModal();
+                await listFiles();
+                openFile(newHandle);
+            } catch (e) {
+                alert("Ошибка: " + e.message);
+            }
+        }
+
+        function exportAsTxt() {
+            const blob = new Blob([editor.value], {type:'text/plain'});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = (fileHandle ? fileHandle.name : 'code') + '.txt';
+            a.click();
+        }
+
+        // Ctrl+S
+        document.addEventListener('keydown', e => {
+            if (e.ctrlKey && e.key === 's') { e.preventDefault(); saveCurrentFile(); }
+        });
+    </script>
+</body>
+</html>
