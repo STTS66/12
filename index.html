@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Roode - Editor v1.4</title>
+    <title>Roode Editor v1.5</title>
     <style>
         :root {
             --bg-color: #1e1e1e;
@@ -11,7 +11,7 @@
             --gutter-text: #858585;
             --text-color: #cccccc;
             --accent-color: #007acc;
-            --header-height: 40px;
+            --header-height: 45px;
             --font-family: 'Consolas', 'Courier New', monospace;
             --font-size: 14px;
             --line-height: 20px;
@@ -28,19 +28,33 @@
         }
 
         header {
-            height: var(--header-height); background-color: #3c3c3c;
+            height: var(--header-height); background-color: #333;
             display: flex; align-items: center; padding: 0 15px;
             justify-content: space-between; user-select: none;
+            border-bottom: 1px solid #111;
         }
 
-        .controls { display: flex; gap: 8px; }
-        .controls button {
-            background-color: var(--accent-color); border: none; color: white;
-            padding: 5px 12px; border-radius: 3px; cursor: pointer;
-            white-space: nowrap; font-size: 12px;
+        /* Улучшенные кнопки */
+        .controls { display: flex; align-items: center; gap: 10px; }
+        
+        .btn {
+            border: none; color: white; padding: 6px 14px;
+            border-radius: 3px; cursor: pointer; font-size: 13px;
+            display: flex; align-items: center; gap: 5px;
+            transition: 0.2s;
         }
-        .controls button.secondary { background-color: #444; }
-        .controls button:hover { opacity: 0.9; }
+        
+        /* Главная кнопка */
+        .btn-primary { background-color: var(--accent-color); font-weight: bold;}
+        .btn-primary:hover { background-color: #005fa3; }
+
+        /* Второстепенная */
+        .btn-secondary { background-color: #4d4d4d; }
+        .btn-secondary:hover { background-color: #666; }
+        
+        /* Кнопка "Создать" (Зеленая для заметности) */
+        .btn-success { background-color: #2da042; }
+        .btn-success:hover { background-color: #238535; }
 
         .workspace {
             display: flex; flex: 1; height: calc(100vh - var(--header-height) - 25px);
@@ -51,35 +65,52 @@
             width: 250px; background-color: var(--sidebar-color);
             border-right: 1px solid #333; display: flex; flex-direction: column;
         }
+        
+        .sidebar-header {
+            padding: 10px; font-size: 11px; font-weight: bold; color: #888;
+            text-transform: uppercase; letter-spacing: 1px; display: flex; justify-content: space-between;
+        }
+
         .file-list { list-style: none; padding: 0; margin: 0; overflow-y: auto; flex:1;}
-        .file-item { padding: 5px 10px; cursor: pointer; display: flex; justify-content: space-between; color:#bbb; align-items:center; font-size:13px;}
+        .file-item { 
+            padding: 5px 10px; cursor: pointer; display: flex; 
+            justify-content: space-between; color:#bbb; align-items:center; 
+            font-size:13px; border-left: 3px solid transparent;
+        }
         .file-item:hover { background: #2a2d2e; color: #fff;}
-        .file-item.active { background: #37373d; border-left: 3px solid var(--accent-color);}
+        .file-item.active { background: #37373d; border-left-color: var(--accent-color); color: white;}
 
-        /* EDITOR */
+        /* EDITOR AREA */
         .editor-container {
-            flex: 1; display: flex; flex-direction: column; position: relative;
-            background: var(--bg-color);
+            flex: 1; display: flex; flex-direction: column;
+            background: var(--bg-color); position: relative;
         }
 
-        .tab-bar { height: 35px; background: #2d2d2d; display: flex; align-items: center; }
-        .tab { padding: 0 15px; height: 100%; display: flex; align-items: center; background: var(--bg-color); color: #fff; font-size: 13px; border-top: 1px solid var(--accent-color); }
-
-        .code-area {
-            flex: 1; display: flex; position: relative; overflow: hidden;
+        .tab-bar { 
+            height: 30px; background: #252526; display: flex; align-items: center; 
+            border-bottom: 1px solid #111;
+        }
+        .tab { 
+            padding: 0 15px; height: 100%; display: flex; align-items: center; 
+            background: #1e1e1e; color: #fff; font-size: 12px; 
+            border-top: 2px solid var(--accent-color);
+            border-right: 1px solid #252526;
         }
 
+        .code-area { flex: 1; display: flex; position: relative; overflow: hidden; }
+
+        /* GUTTER (номера строк) */
         .gutter {
-            width: 50px; background: var(--sidebar-color); color: var(--gutter-text);
-            text-align: right; border-right: 1px solid #444; user-select: none;
+            width: 45px; background: #1e1e1e; color: #6e7681;
+            text-align: right; border-right: 1px solid #333; user-select: none;
             padding-top: 10px; box-sizing: border-box; overflow: hidden;
         }
-
         .line-number {
             font-size: var(--font-size); font-family: var(--font-family);
-            line-height: var(--line-height); padding-right: 8px; box-sizing: border-box;
+            line-height: var(--line-height); padding-right: 10px; box-sizing: border-box;
         }
 
+        /* TEXTAREA */
         textarea#editor {
             flex: 1; background: transparent; color: #d4d4d4; border: none;
             resize: none; padding: 10px;
@@ -89,328 +120,349 @@
             overflow-x: hidden; box-sizing: border-box; z-index: 2;
         }
 
-        /* Тень для подсчета высоты */
+        /* Hidden Helper */
         #size-calculator {
             visibility: hidden; position: absolute; top: -9999px; left: -9999px;
-            width: calc(100% - 60px); padding: 10px; box-sizing: border-box;
+            width: calc(100% - 55px); padding: 10px; box-sizing: border-box;
             font-family: var(--font-family); font-size: var(--font-size);
             line-height: var(--line-height); white-space: pre-wrap; word-wrap: break-word;
         }
 
-        footer { height: 25px; background: var(--accent-color); display: flex; align-items: center; padding: 0 15px; color: white; font-size: 12px; }
+        footer { 
+            height: 25px; background: var(--accent-color); 
+            display: flex; align-items: center; padding: 0 15px; color: white; font-size: 11px; 
+        }
 
-        .delete-btn { opacity: 0; color: #888; font-weight: bold; font-size: 16px; padding: 0 5px;}
-        .file-item:hover .delete-btn { opacity: 1; }
-        .delete-btn:hover { color: #ff4d4d; }
+        /* UTILS */
+        .delete-btn { opacity: 0; font-weight: bold; margin-left: 10px; transition: 0.2s;}
+        .file-item:hover .delete-btn { opacity: 1; color: #aaa; }
+        .delete-btn:hover { color: #f55; }
 
-        .overlay { display: none; position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); align-items:center; justify-content:center; z-index:99;}
-        .modal { background:#252526; padding:20px; border-radius:5px; text-align:center; box-shadow:0 0 10px #000; width: 300px;}
-        .modal input { background: #333; color: white; border:1px solid #555; padding:8px; width:90%; margin-bottom: 10px;}
-        .mode-label { font-size: 10px; color: #aaa; margin-left: auto; margin-right: 10px; text-transform: uppercase;}
+        .modal-overlay { 
+            display: none; position: fixed; top:0; left:0; width:100%; height:100%; 
+            background:rgba(0,0,0,0.6); align-items:center; justify-content:center; z-index:99;
+        }
+        .modal { background:#252526; padding:20px; border-radius:5px; text-align:center; box-shadow:0 5px 20px rgba(0,0,0,0.5); width: 300px; border: 1px solid #444;}
+        .modal input { 
+            background: #3c3c3c; color: white; border:1px solid #555; 
+            padding:8px; width:90%; margin-bottom: 15px; margin-top: 5px; outline: none;
+        }
+        .modal h3 { margin-top: 0; color: #ccc;}
     </style>
 </head>
 <body>
 
 <header>
-    <div style="color:white; font-weight:bold; display:flex; flex-direction:column; line-height:12px;">
-        Roode <small style="font-size:9px;opacity:0.5; margin-top:2px;">v1.4 Multi-load</small>
-    </div>
+    <div style="font-weight:bold; color: white; margin-right: 10px;">Roode <span style="opacity:0.5; font-size: 11px;">1.5</span></div>
     
     <div class="controls">
-        <button class="secondary" onclick="openFolderPicker()">📂 Папка</button>
-        <button class="secondary" onclick="openFilesPicker()">📄+ Откр. Файлы</button>
-        <button class="secondary" onclick="newFileUI()">✨ Создать</button>
-        <button onclick="saveFile()">💾 Сохранить</button>
+        <!-- ГЛАВНАЯ КНОПКА -->
+        <button class="btn btn-primary" onclick="openFolderHandle()" title="Выбрать папку с проектом">
+            📂 ОТКРЫТЬ ПАПКУ
+        </button>
+
+        <!-- Создание файла -->
+        <button class="btn btn-success" onclick="tryCreateFile()">
+            ➕ Создать
+        </button>
+
+        <button class="btn btn-secondary" onclick="saveFileHandle()">
+            💾
+        </button>
+
+        <div style="width: 1px; height: 20px; background: #555; margin: 0 5px;"></div>
+
+        <!-- Кнопка "отдельные файлы" сделана меньше, чтобы не путать -->
+        <button class="btn btn-secondary" style="font-size:11px; padding: 4px 8px;" onclick="openFilesHandle()" title="Только просмотр файлов">
+            📄 просто файлы
+        </button>
     </div>
 </header>
 
 <div class="workspace">
-    <!-- SIDEBAR -->
+    <!-- ЛЕВАЯ ПАНЕЛЬ -->
     <div class="sidebar">
-        <div style="padding:10px; color:#aaa; font-size:11px; font-weight:bold; display:flex; align-items:center;">
-            ПРОВОДНИК 
-            <span id="explorerMode" style="margin-left:auto; font-weight:normal; font-size:9px; border:1px solid #444; padding:1px 4px; border-radius:3px;">ПУСТО</span>
-            <span onclick="refreshList()" style="cursor:pointer; margin-left:10px;" title="Обновить">↻</span>
+        <div class="sidebar-header">
+            <span>ФАЙЛЫ</span>
+            <span onclick="refreshFileList()" style="cursor:pointer;" title="Обновить">↻</span>
         </div>
-        <ul id="fileList" class="file-list"></ul>
+        <ul id="fileList" class="file-list">
+            <li style="padding:20px 10px; text-align:center; color:#555; font-size:12px; line-height: 1.5;">
+                Папка не открыта.<br>Нажмите <b>📂 ОТКРЫТЬ ПАПКУ</b> сверху.
+            </li>
+        </ul>
     </div>
 
-    <!-- EDITOR AREA -->
+    <!-- РЕДАКТОР -->
     <div class="editor-container">
         <div class="tab-bar">
-            <div class="tab" id="currentFile">Добро пожаловать</div>
-            <div class="mode-label" id="savingStatus"></div>
+            <div class="tab" id="currentFileName">Нет файла</div>
         </div>
         
         <div class="code-area">
             <div id="gutter" class="gutter"><div class="line-number">1</div></div>
-            <textarea id="editor" spellcheck="false" placeholder="Код писать здесь..."></textarea>
+            <textarea id="editor" spellcheck="false" placeholder="Здесь будет ваш код..."></textarea>
             <div id="size-calculator"></div>
         </div>
     </div>
 </div>
 
 <footer>
-    <div id="status">Система готова</div>
+    <div id="statusbar">Ожидание действий пользователя...</div>
 </footer>
 
-<!-- UI MODAL -->
-<div class="overlay" id="modalUI">
+<!-- МОДАЛКА СОЗДАНИЯ -->
+<div class="modal-overlay" id="createModal">
     <div class="modal">
         <h3>Новый файл</h3>
-        <p style="font-size:12px; color:#aaa;">Будет создан внутри открытой папки</p>
-        <input id="filename" placeholder="Name.PRSH">
-        <button onclick="createFileExec()">Создать</button>
-        <button class="secondary" onclick="document.getElementById('modalUI').style.display='none'">Отмена</button>
+        <input type="text" id="newFilenameInput" placeholder="Название (например script.PRSH)">
+        <div>
+            <button class="btn btn-success" onclick="finalizeCreation()">Создать</button>
+            <button class="btn btn-secondary" onclick="document.getElementById('createModal').style.display='none'">Отмена</button>
+        </div>
     </div>
 </div>
 
 <script>
-    // === ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ===
-    let dirHandle = null;         // Если открыта папка
-    let activeFiles = [];         // Если открыты отдельные файлы
-    let fileHandle = null;        // Текущий редактируемый файл
-    let mode = 'empty';           // 'folder' или 'files'
+    // == GLOBAL STATE ==
+    let folderHandle = null;  // Объект папки
+    let activeFileHandle = null; // Объект текущего файла
+    let isFolderMode = false;
 
-    const editor = document.getElementById('editor');
-    const gutter = document.getElementById('gutter');
-    const shadow = document.getElementById('size-calculator');
-    const fileListEl = document.getElementById('fileList');
+    // == ELEMENTS ==
+    const els = {
+        editor: document.getElementById('editor'),
+        gutter: document.getElementById('gutter'),
+        calc: document.getElementById('size-calculator'),
+        list: document.getElementById('fileList'),
+        tabName: document.getElementById('currentFileName'),
+        status: document.getElementById('statusbar'),
+        modal: document.getElementById('createModal'),
+        filenameInput: document.getElementById('newFilenameInput')
+    };
 
-    // === ЛОГИКА НУМЕРАЦИИ (СОХРАНЕНА С FIX 1.3) ===
-    function updateLineNumbers() {
-        const text = editor.value;
-        const lines = text.split('\n');
-        
-        shadow.style.width = editor.clientWidth + 'px'; // Синхрон ширины
-        shadow.innerHTML = ''; 
-
-        let htmlNumbers = '';
-        lines.forEach((lineText, index) => {
-            const div = document.createElement('div');
-            div.textContent = lineText || ' '; 
-            div.style.lineHeight = '20px';
-            shadow.appendChild(div);
-            
-            const height = div.offsetHeight;
-            htmlNumbers += `<div class="line-number" style="height:${height}px">${index + 1}</div>`;
-        });
-        gutter.innerHTML = htmlNumbers;
-    }
-
-    editor.addEventListener('input', updateLineNumbers);
-    editor.addEventListener('scroll', () => { gutter.scrollTop = editor.scrollTop; });
-    window.addEventListener('resize', updateLineNumbers);
-
-    // Начальный шаблон
-    editor.value = `// Откройте папку или загрузите файлы (.PRSH)
-// Меню сверху "📄+ Откр. Файлы"`;
-    setTimeout(updateLineNumbers, 100);
-
-    // === ФУНКЦИОНАЛ ОТКРЫТИЯ ===
-
-    // 1. Открыть ПАПКУ
-    async function openFolderPicker() {
+    // 1. ОТКРЫТИЕ ПАПКИ (Главная функция)
+    async function openFolderHandle() {
         try {
-            dirHandle = await window.showDirectoryPicker();
-            mode = 'folder';
-            activeFiles = []; // Сброс списка отдельных файлов
-            fileHandle = null;
-            document.getElementById('explorerMode').innerText = "ПАПКА";
-            document.getElementById('status').innerText = 'Открыта папка: ' + dirHandle.name;
-            await refreshList();
+            // Запрашиваем доступ к папке
+            folderHandle = await window.showDirectoryPicker();
+            isFolderMode = true;
+            els.status.textContent = `Папка открыта: ${folderHandle.name}`;
+            await refreshFileList();
         } catch(e) {
-            console.log("Отмена выбора папки");
+            console.log(e); // Скорее всего пользователь нажал "Отмена"
         }
     }
 
-    // 2. Открыть ФАЙЛЫ (Мультизагрузка)
-    async function openFilesPicker() {
+    // 2. ОТКРЫТИЕ ФАЙЛОВ (Второстепенная)
+    async function openFilesHandle() {
         try {
-            // Разрешаем выбирать .PRSH, .PRSHX и .txt
             const handles = await window.showOpenFilePicker({
                 multiple: true,
-                types: [{
-                    description: 'RuPL Files',
-                    accept: {'text/plain': ['.PRSH', '.PRSHX', '.txt']}
-                }]
+                types: [{description: 'Code', accept: {'text/plain': ['.PRSH','.PRSHX','.txt']}}]
             });
-            
-            mode = 'files';
-            dirHandle = null; // Сбрасываем папку, переходим в режим файлов
-            document.getElementById('explorerMode').innerText = "СПИСОК";
-            
-            // Добавляем новые файлы к текущим (чтобы можно было догружать)
-            // Исключаем дубликаты по имени
-            for (let h of handles) {
-                if(!activeFiles.find(f => f.name === h.name)) {
-                    activeFiles.push(h);
+            isFolderMode = false;
+            folderHandle = null;
+            els.status.textContent = "Режим отдельных файлов";
+            renderFilesList(handles);
+        } catch(e) {}
+    }
+
+    // 3. ПОСТРОЕНИЕ СПИСКА ФАЙЛОВ
+    async function refreshFileList() {
+        if (!folderHandle) return;
+        
+        const files = [];
+        // Проходимся по всей папке
+        for await (const [name, handle] of folderHandle.entries()) {
+            if (handle.kind === 'file') {
+                const upper = name.toUpperCase();
+                // Фильтр расширений
+                if(upper.endsWith('.PRSH') || upper.endsWith('.PRSHX') || upper.endsWith('.TXT')) {
+                    files.push(handle);
                 }
             }
-            
-            document.getElementById('status').innerText = `Загружено файлов: ${activeFiles.length}`;
-            refreshList();
-        } catch(e) {
-            if(e.name !== 'AbortError') alert("Ваш браузер не поддерживает это API.");
         }
+        renderFilesList(files);
     }
 
-    // === ОТРИСОВКА СПИСКА ===
-    async function refreshList() {
-        fileListEl.innerHTML = '';
-        
-        if (mode === 'folder' && dirHandle) {
-            // Чтение из папки
-            for await (const [key, val] of dirHandle.entries()) {
-                if(val.kind === 'file' && (key.toUpperCase().endsWith('.PRSH') || key.toUpperCase().endsWith('.PRSHX') || key.endsWith('.txt'))) {
-                    createFileItemElement(key, val); // val это хендл
-                }
-            }
-        } else if (mode === 'files' && activeFiles.length > 0) {
-            // Чтение из массива
-            activeFiles.forEach(handle => {
-                createFileItemElement(handle.name, handle);
-            });
-        } else {
-            fileListEl.innerHTML = '<li style="padding:15px;text-align:center;font-size:12px;color:#666">Нет файлов</li>';
+    function renderFilesList(handles) {
+        els.list.innerHTML = '';
+        if(handles.length === 0) {
+            els.list.innerHTML = '<li style="padding:15px;text-align:center;color:#666;">Папка пуста или нет .PRSH файлов</li>';
+            return;
         }
-    }
 
-    function createFileItemElement(name, handle) {
-        const li = document.createElement('li');
-        li.className = 'file-item';
-        if(fileHandle && fileHandle.name === name) li.classList.add('active');
+        handles.forEach(h => {
+            const li = document.createElement('li');
+            li.className = 'file-item';
+            if(activeFileHandle && activeFileHandle.name === h.name) li.classList.add('active');
+            
+            // Иконка в зависимости от расширения
+            let icon = '📄';
+            if(h.name.toUpperCase().endsWith('.PRSHX')) icon = '🧩';
 
-        // Иконка и имя
-        const nameSpan = document.createElement('span');
-        const ext = name.split('.').pop().toLowerCase();
-        let icon = "📄";
-        if(ext === 'prshx') icon = "🧩";
-        
-        nameSpan.innerHTML = `${icon} ${name}`;
-        nameSpan.style.pointerEvents = "none"; // Чтобы клик шел на li
-        
-        // Обработчик открытия
-        li.onclick = () => loadFileContent(handle);
+            li.innerHTML = `
+                <div style="display:flex; align-items:center;">
+                    <span style="margin-right:8px; opacity:0.7">${icon}</span> ${h.name}
+                </div>
+                <div class="delete-btn" title="Удалить">🗑</div>
+            `;
 
-        // Кнопка закрытия/удаления
-        const delBtn = document.createElement('span');
-        delBtn.className = 'delete-btn';
-        delBtn.innerHTML = "&times;"; // Крестик
-        
-        // Логика удаления отличается в зависимости от режима
-        delBtn.onclick = async (e) => {
-            e.stopPropagation(); // Не открывать файл
-            if(mode === 'folder') {
-                if(confirm('Удалить файл ' + name + ' с диска?')) {
-                    await dirHandle.removeEntry(name);
-                    if(fileHandle && fileHandle.name === name) resetEditor();
-                    refreshList();
+            // Клик по файлу - открыть
+            li.onclick = (e) => {
+                if(!e.target.classList.contains('delete-btn')) loadFile(h);
+            };
+
+            // Клик по удалению
+            li.querySelector('.delete-btn').onclick = async (e) => {
+                e.stopPropagation();
+                if(confirm(`Удалить ${h.name} навсегда?`)) {
+                    if(isFolderMode && folderHandle) {
+                        try {
+                            await folderHandle.removeEntry(h.name);
+                            if(activeFileHandle && activeFileHandle.name === h.name) clearEditor();
+                            refreshFileList();
+                        } catch(err) { alert("Ошибка удаления. Нет прав?"); }
+                    } else {
+                        // В режиме списка просто убираем из view
+                        li.remove();
+                    }
                 }
-            } else {
-                // В режиме списка просто убираем из редактора
-                activeFiles = activeFiles.filter(f => f.name !== name);
-                if(fileHandle && fileHandle.name === name) resetEditor();
-                refreshList();
-            }
-        };
+            };
 
-        li.appendChild(nameSpan);
-        li.appendChild(delBtn);
-        fileListEl.appendChild(li);
+            els.list.appendChild(li);
+        });
     }
 
-    // === РАБОТА С КОДОМ ===
-    async function loadFileContent(handle) {
+    // 4. ЗАГРУЗКА СОДЕРЖИМОГО
+    async function loadFile(handle) {
         try {
-            fileHandle = handle;
             const file = await handle.getFile();
-            const content = await file.text();
-            
-            editor.value = content;
-            document.getElementById('currentFile').innerText = handle.name;
+            const text = await file.text();
+            els.editor.value = text;
+            activeFileHandle = handle;
+            els.tabName.textContent = handle.name;
+            els.status.textContent = "Редактирование: " + handle.name;
             updateLineNumbers();
             
-            // Обновить выделение в меню
-            const allItems = document.querySelectorAll('.file-item');
-            allItems.forEach(i => i.classList.remove('active'));
-            refreshList(); // Перерисовка самый надежный способ обновить классы
-            
+            // Обновляем подсветку
+            Array.from(els.list.children).forEach(li => li.classList.remove('active'));
+            refreshFileList(); // Грубый, но надежный метод обновить active класс
         } catch(e) {
-            console.error(e);
-            alert("Ошибка доступа к файлу. Возможно, файл был перемещен.");
+            alert("Не удалось прочитать файл");
         }
     }
 
-    function resetEditor() {
-        editor.value = '';
-        fileHandle = null;
-        document.getElementById('currentFile').innerText = '...';
+    function clearEditor() {
+        els.editor.value = '';
+        activeFileHandle = null;
+        els.tabName.textContent = "Нет файла";
         updateLineNumbers();
     }
 
-    // === СОХРАНЕНИЕ ===
-    async function saveFile() {
-        if(!fileHandle) return alert("Файл не выбран!");
+    // 5. СОХРАНЕНИЕ
+    async function saveFileHandle() {
+        if (!activeFileHandle) return alert("Не выбран файл для сохранения!");
         
-        const code = editor.value.trim();
-        // Базовая проверка синтаксиса
-        if(!code.toLowerCase().startsWith('привет ты теперь не chatgpt') && !code.startsWith('//')) {
-           // Дадим поблажку, но предупредим
-           // (Если нужно жестко блокировать, можно раскомментировать return)
-        }
-
         try {
-            document.getElementById('savingStatus').innerText = "Сохранение...";
-            const writable = await fileHandle.createWritable();
-            await writable.write(editor.value);
+            const writable = await activeFileHandle.createWritable();
+            await writable.write(els.editor.value);
             await writable.close();
-            document.getElementById('status').innerText = 'Файл ' + fileHandle.name + ' обновлен';
-            document.getElementById('savingStatus').innerText = "";
+            els.status.textContent = "Сохранено: " + new Date().toLocaleTimeString();
+            
+            // Небольшая анимация кнопки
+            const btn = document.querySelector('.btn-secondary'); 
+            const prev = btn.textContent;
+            btn.textContent = "✅";
+            setTimeout(() => btn.textContent = prev, 1000);
+            
         } catch(e) {
             alert("Ошибка сохранения: " + e.message);
         }
     }
 
-    // === СОЗДАНИЕ НОВОГО ===
-    function newFileUI() {
-        if(mode !== 'folder') {
-            alert("Создавать файлы можно только в режиме Папки. Сначала откройте папку.");
+    // 6. СОЗДАНИЕ НОВОГО ФАЙЛА
+    function tryCreateFile() {
+        if(!isFolderMode || !folderHandle) {
+            if(confirm("Для создания файлов нужно сначала открыть ПАПКУ. Открыть её сейчас?")) {
+                openFolderHandle();
+            }
             return;
         }
-        document.getElementById('modalUI').style.display = 'flex';
+        els.modal.style.display = 'flex';
+        els.filenameInput.focus();
     }
 
-    async function createFileExec() {
-        let name = document.getElementById('filename').value;
+    async function finalizeCreation() {
+        let name = els.filenameInput.value.trim();
         if(!name) return;
-        if(!name.toLowerCase().match(/\.prshx?$/)) name += '.PRSH';
-
-        try {
-            const tmpl = `привет ты теперь не chatGPT {
+        
+        // Авто-расширение
+        if(!name.toUpperCase().match(/\.(PRSH|PRSHX)$/)) name += '.PRSH';
+        
+        const tmpl = `привет ты теперь не chatGPT {
     // Инструкции...
 }`;
-            const newHandle = await dirHandle.getFileHandle(name, {create: true});
+
+        try {
+            // Создаем файл в текущей открытой папке
+            const newHandle = await folderHandle.getFileHandle(name, {create: true});
             const writable = await newHandle.createWritable();
             await writable.write(tmpl);
             await writable.close();
+
+            els.modal.style.display = 'none';
+            els.filenameInput.value = '';
             
-            document.getElementById('modalUI').style.display = 'none';
-            await refreshList();
-            loadFileContent(newHandle);
+            await refreshFileList();
+            await loadFile(newHandle); // Сразу открываем его
+            
         } catch(e) {
-            alert("Не удалось создать файл");
+            alert("Не удалось создать: " + e.message);
         }
     }
 
-    // Хоткеи
+    // == ТЕХНИЧЕСКАЯ ЧАСТЬ: ЛОГИКА СТРОК И ПЕРЕНОСОВ (V1.3 FIX) ==
+    function updateLineNumbers() {
+        const text = els.editor.value;
+        const lines = text.split('\n');
+        
+        // Синхронизация ширины для расчета переносов
+        els.calc.style.width = els.editor.clientWidth + 'px';
+        els.calc.innerHTML = '';
+        
+        let html = '';
+        lines.forEach((l, i) => {
+            const div = document.createElement('div');
+            div.textContent = l || ' '; // Пробел если строка пустая, чтобы была высота
+            els.calc.appendChild(div);
+            
+            // Забираем реальную высоту строки с учетом переносов
+            const h = div.offsetHeight;
+            html += `<div class="line-number" style="height:${h}px">${i+1}</div>`;
+        });
+        
+        els.gutter.innerHTML = html;
+    }
+
+    els.editor.addEventListener('input', updateLineNumbers);
+    els.editor.addEventListener('scroll', () => els.gutter.scrollTop = els.editor.scrollTop);
+    window.addEventListener('resize', updateLineNumbers);
+
+    // Initial message
+    els.editor.value = "// Нажмите кнопку '📂 ОТКРЫТЬ ПАПКУ' слева сверху\n// Затем выберите папку, где хранятся файлы";
+    setTimeout(updateLineNumbers, 50);
+
+    // Hotkeys
     document.addEventListener('keydown', e => {
-        if(e.ctrlKey && e.key === 's') { 
-            e.preventDefault(); 
-            saveFile(); 
+        if(e.ctrlKey && e.key === 's') {
+            e.preventDefault();
+            saveFileHandle();
         }
     });
 
 </script>
+
 </body>
 </html>
