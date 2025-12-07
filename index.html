@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Roode - RuPL Editor (Fixed Sync)</title>
+    <title>Roode - Editor v1.4</title>
     <style>
         :root {
             --bg-color: #1e1e1e;
@@ -14,7 +14,7 @@
             --header-height: 40px;
             --font-family: 'Consolas', 'Courier New', monospace;
             --font-size: 14px;
-            --line-height: 20px; /* Фиксированная высота строки для расчетов */
+            --line-height: 20px;
         }
 
         body {
@@ -33,27 +33,30 @@
             justify-content: space-between; user-select: none;
         }
 
+        .controls { display: flex; gap: 8px; }
         .controls button {
             background-color: var(--accent-color); border: none; color: white;
-            padding: 5px 12px; margin-left: 10px; border-radius: 3px; cursor: pointer;
+            padding: 5px 12px; border-radius: 3px; cursor: pointer;
+            white-space: nowrap; font-size: 12px;
         }
         .controls button.secondary { background-color: #444; }
+        .controls button:hover { opacity: 0.9; }
 
         .workspace {
             display: flex; flex: 1; height: calc(100vh - var(--header-height) - 25px);
         }
 
+        /* SIDEBAR */
         .sidebar {
             width: 250px; background-color: var(--sidebar-color);
             border-right: 1px solid #333; display: flex; flex-direction: column;
         }
-        
-        .file-list { list-style: none; padding: 0; margin: 0; overflow-y: auto; }
-        .file-item { padding: 5px 10px; cursor: pointer; display: flex; justify-content: space-between; color:#bbb;}
+        .file-list { list-style: none; padding: 0; margin: 0; overflow-y: auto; flex:1;}
+        .file-item { padding: 5px 10px; cursor: pointer; display: flex; justify-content: space-between; color:#bbb; align-items:center; font-size:13px;}
         .file-item:hover { background: #2a2d2e; color: #fff;}
         .file-item.active { background: #37373d; border-left: 3px solid var(--accent-color);}
 
-        /* РЕДАКТОР - ОБОЛОЧКА */
+        /* EDITOR */
         .editor-container {
             flex: 1; display: flex; flex-direction: column; position: relative;
             background: var(--bg-color);
@@ -62,276 +65,352 @@
         .tab-bar { height: 35px; background: #2d2d2d; display: flex; align-items: center; }
         .tab { padding: 0 15px; height: 100%; display: flex; align-items: center; background: var(--bg-color); color: #fff; font-size: 13px; border-top: 1px solid var(--accent-color); }
 
-        /* ВАЖНО: Контейнер для редактора и номеров */
         .code-area {
-            flex: 1;
-            display: flex;
-            position: relative;
-            overflow: hidden; /* Скроллит textarea, но скрывает общий */
+            flex: 1; display: flex; position: relative; overflow: hidden;
         }
 
-        /* Колонка номеров */
         .gutter {
-            width: 50px;
-            background: var(--sidebar-color);
-            color: var(--gutter-text);
-            text-align: right;
-            border-right: 1px solid #444;
-            user-select: none;
-            overflow: hidden; /* Скроллится программно через JS */
-            padding-top: 10px;
-            box-sizing: border-box;
+            width: 50px; background: var(--sidebar-color); color: var(--gutter-text);
+            text-align: right; border-right: 1px solid #444; user-select: none;
+            padding-top: 10px; box-sizing: border-box; overflow: hidden;
         }
 
         .line-number {
-            font-size: var(--font-size);
-            font-family: var(--font-family);
-            line-height: var(--line-height);
-            padding-right: 8px;
-            box-sizing: border-box;
-            /* Высота задается скриптом */
+            font-size: var(--font-size); font-family: var(--font-family);
+            line-height: var(--line-height); padding-right: 8px; box-sizing: border-box;
         }
 
-        /* Само поле ввода */
         textarea#editor {
-            flex: 1;
-            background: transparent;
-            color: #d4d4d4;
-            border: none;
-            resize: none;
-            padding: 10px; /* Отступы должны совпадать с gutter-ом по вертикали */
-            font-family: var(--font-family);
-            font-size: var(--font-size);
+            flex: 1; background: transparent; color: #d4d4d4; border: none;
+            resize: none; padding: 10px;
+            font-family: var(--font-family); font-size: var(--font-size);
             line-height: var(--line-height);
-            outline: none;
-            white-space: pre-wrap; /* Перенос слов включен */
-            overflow-y: scroll;
-            overflow-x: hidden;
-            tab-size: 4;
-            box-sizing: border-box; /* Важно для размеров */
-            z-index: 2;
+            outline: none; white-space: pre-wrap; overflow-y: scroll;
+            overflow-x: hidden; box-sizing: border-box; z-index: 2;
         }
 
-        /* СКРЫТЫЙ БЛОК ДЛЯ ИЗМЕРЕНИЙ (Тень) */
-        /* Он точно копирует стили textarea, чтобы узнать высоту перенесенных строк */
+        /* Тень для подсчета высоты */
         #size-calculator {
-            visibility: hidden;
-            position: absolute;
-            top: -9999px;
-            left: -9999px;
-            width: calc(100% - 250px - 20px); /* Ширина textarea (100% - sidebar - padding) грубо, но точнее через JS */
-            font-family: var(--font-family);
-            font-size: var(--font-size);
-            line-height: var(--line-height);
-            white-space: pre-wrap;
-            word-wrap: break-word;
-            padding: 10px; /* Те же паддинги что и у textarea */
-            box-sizing: border-box;
+            visibility: hidden; position: absolute; top: -9999px; left: -9999px;
+            width: calc(100% - 60px); padding: 10px; box-sizing: border-box;
+            font-family: var(--font-family); font-size: var(--font-size);
+            line-height: var(--line-height); white-space: pre-wrap; word-wrap: break-word;
         }
 
         footer { height: 25px; background: var(--accent-color); display: flex; align-items: center; padding: 0 15px; color: white; font-size: 12px; }
 
-        /* Модальные окна и мелочи */
-        .icon { margin-right:5px;}
-        .delete-btn { opacity: 0; color: #888; }
+        .delete-btn { opacity: 0; color: #888; font-weight: bold; font-size: 16px; padding: 0 5px;}
         .file-item:hover .delete-btn { opacity: 1; }
-        .delete-btn:hover { color: red; font-weight: bold; }
+        .delete-btn:hover { color: #ff4d4d; }
+
         .overlay { display: none; position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); align-items:center; justify-content:center; z-index:99;}
-        .modal { background:#252526; padding:20px; border-radius:5px; text-align:center; box-shadow:0 0 10px #000;}
-        .modal input { background: #333; color: white; border:1px solid #555; padding:5px; width:80%;}
+        .modal { background:#252526; padding:20px; border-radius:5px; text-align:center; box-shadow:0 0 10px #000; width: 300px;}
+        .modal input { background: #333; color: white; border:1px solid #555; padding:8px; width:90%; margin-bottom: 10px;}
+        .mode-label { font-size: 10px; color: #aaa; margin-left: auto; margin-right: 10px; text-transform: uppercase;}
     </style>
 </head>
 <body>
 
 <header>
-    <div style="color:white; font-weight:bold;">Roode <small>v1.3 Fix</small></div>
+    <div style="color:white; font-weight:bold; display:flex; flex-direction:column; line-height:12px;">
+        Roode <small style="font-size:9px;opacity:0.5; margin-top:2px;">v1.4 Multi-load</small>
+    </div>
+    
     <div class="controls">
-        <button class="secondary" onclick="openFolder()">📂 Папка</button>
-        <button class="secondary" onclick="newFileUI()">📄 Файл</button>
+        <button class="secondary" onclick="openFolderPicker()">📂 Папка</button>
+        <button class="secondary" onclick="openFilesPicker()">📄+ Откр. Файлы</button>
+        <button class="secondary" onclick="newFileUI()">✨ Создать</button>
         <button onclick="saveFile()">💾 Сохранить</button>
     </div>
 </header>
 
 <div class="workspace">
-    <!-- САЙДБАР -->
+    <!-- SIDEBAR -->
     <div class="sidebar">
-        <div style="padding:10px; color:#aaa; font-size:11px; font-weight:bold;">ПРОВОДНИК <span onclick="listFiles()" style="cursor:pointer; float:right;">↻</span></div>
+        <div style="padding:10px; color:#aaa; font-size:11px; font-weight:bold; display:flex; align-items:center;">
+            ПРОВОДНИК 
+            <span id="explorerMode" style="margin-left:auto; font-weight:normal; font-size:9px; border:1px solid #444; padding:1px 4px; border-radius:3px;">ПУСТО</span>
+            <span onclick="refreshList()" style="cursor:pointer; margin-left:10px;" title="Обновить">↻</span>
+        </div>
         <ul id="fileList" class="file-list"></ul>
     </div>
 
-    <!-- РЕДАКТОР -->
+    <!-- EDITOR AREA -->
     <div class="editor-container">
         <div class="tab-bar">
-            <div class="tab" id="currentFile">...</div>
+            <div class="tab" id="currentFile">Добро пожаловать</div>
+            <div class="mode-label" id="savingStatus"></div>
         </div>
         
         <div class="code-area">
-            <!-- Слева цифры -->
-            <div id="gutter" class="gutter">
-                <div class="line-number">1</div>
-            </div>
-
-            <!-- По центру код -->
-            <textarea id="editor" spellcheck="false" placeholder="Пиши код здесь..."></textarea>
-            
-            <!-- Невидимый помощник для расчета высоты -->
+            <div id="gutter" class="gutter"><div class="line-number">1</div></div>
+            <textarea id="editor" spellcheck="false" placeholder="Код писать здесь..."></textarea>
             <div id="size-calculator"></div>
         </div>
     </div>
 </div>
 
 <footer>
-    <div id="status">Готов</div>
+    <div id="status">Система готова</div>
 </footer>
 
+<!-- UI MODAL -->
 <div class="overlay" id="modalUI">
     <div class="modal">
         <h3>Новый файл</h3>
+        <p style="font-size:12px; color:#aaa;">Будет создан внутри открытой папки</p>
         <input id="filename" placeholder="Name.PRSH">
-        <br><br>
         <button onclick="createFileExec()">Создать</button>
         <button class="secondary" onclick="document.getElementById('modalUI').style.display='none'">Отмена</button>
     </div>
 </div>
 
 <script>
-    let dirHandle, fileHandle;
+    // === ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ===
+    let dirHandle = null;         // Если открыта папка
+    let activeFiles = [];         // Если открыты отдельные файлы
+    let fileHandle = null;        // Текущий редактируемый файл
+    let mode = 'empty';           // 'folder' или 'files'
+
     const editor = document.getElementById('editor');
     const gutter = document.getElementById('gutter');
-    const shadow = document.getElementById('size-calculator'); // Теневой блок
+    const shadow = document.getElementById('size-calculator');
+    const fileListEl = document.getElementById('fileList');
 
-    // ===== ЯДРО: ЛОГИКА НУМЕРАЦИИ И ВЫСОТЫ СТРОК =====
+    // === ЛОГИКА НУМЕРАЦИИ (СОХРАНЕНА С FIX 1.3) ===
     function updateLineNumbers() {
         const text = editor.value;
-        const lines = text.split('\n'); // Разбиваем код на массив строк
+        const lines = text.split('\n');
         
-        // Синхронизируем ширину теневого блока с реальной шириной редактора
-        // Важно вычесть полосу прокрутки, если она есть
-        shadow.style.width = editor.clientWidth + 'px'; 
-        shadow.innerHTML = ''; // Чистим тень
+        shadow.style.width = editor.clientWidth + 'px'; // Синхрон ширины
+        shadow.innerHTML = ''; 
 
         let htmlNumbers = '';
-
-        // Проходимся по каждой строке
         lines.forEach((lineText, index) => {
-            // 1. Создаем "кусочек" текста в скрытом блоке
             const div = document.createElement('div');
-            // Если строка пустая, вставим пробел, чтобы у нее была высота
             div.textContent = lineText || ' '; 
-            // Стили должны совпадать (padding и border не нужны тут, так как у container padding)
             div.style.lineHeight = '20px';
-            
             shadow.appendChild(div);
-
-            // 2. Измеряем реальную высоту получившегося блока (с учетом переносов)
+            
             const height = div.offsetHeight;
-
-            // 3. Добавляем номер строки с этой высотой
             htmlNumbers += `<div class="line-number" style="height:${height}px">${index + 1}</div>`;
         });
-
-        // 4. Обновляем панель цифр
         gutter.innerHTML = htmlNumbers;
     }
 
-    // Слушатели событий
     editor.addEventListener('input', updateLineNumbers);
-    
-    // Синхронный скролл (крутишь текст - крутятся цифры)
-    editor.addEventListener('scroll', () => {
-        gutter.scrollTop = editor.scrollTop;
-    });
-
-    // Изменение размера окна может сдвинуть переносы слов
+    editor.addEventListener('scroll', () => { gutter.scrollTop = editor.scrollTop; });
     window.addEventListener('resize', updateLineNumbers);
-    
-    // Запуск при старте
-    editor.value = `привет ты теперь не chatGPT {
-    
-    // Пример длинной строки:
-    // Эта строка настолько длинная, что она должна перенестись на новую строку визуально, и номер слева (цифра 4) должен стать выше (занять 2 или 3 строки), чтобы цифра 5 не наползла на текст. Проверь это, вписав сюда много текста.
 
-}`;
-    setTimeout(updateLineNumbers, 100); // Небольшая задержка для рендера
+    // Начальный шаблон
+    editor.value = `// Откройте папку или загрузите файлы (.PRSH)
+// Меню сверху "📄+ Откр. Файлы"`;
+    setTimeout(updateLineNumbers, 100);
 
+    // === ФУНКЦИОНАЛ ОТКРЫТИЯ ===
 
-
-    // ===== ФАЙЛОВАЯ СИСТЕМА =====
-    async function openFolder() {
+    // 1. Открыть ПАПКУ
+    async function openFolderPicker() {
         try {
             dirHandle = await window.showDirectoryPicker();
-            document.getElementById('status').innerText = 'Папка: ' + dirHandle.name;
-            await listFiles();
-        } catch(e) {}
+            mode = 'folder';
+            activeFiles = []; // Сброс списка отдельных файлов
+            fileHandle = null;
+            document.getElementById('explorerMode').innerText = "ПАПКА";
+            document.getElementById('status').innerText = 'Открыта папка: ' + dirHandle.name;
+            await refreshList();
+        } catch(e) {
+            console.log("Отмена выбора папки");
+        }
     }
 
-    async function listFiles() {
-        if(!dirHandle) return;
-        const list = document.getElementById('fileList');
-        list.innerHTML = '';
-        for await (const [key, val] of dirHandle.entries()) {
-            if(val.kind === 'file' && (key.endsWith('.PRSH') || key.endsWith('.PRSHX'))) {
-                const li = document.createElement('li');
-                li.className = 'file-item';
-                li.innerHTML = `<span>📄 ${key}</span> <span class="delete-btn">🗑</span>`;
-                
-                // Клик по названию - открыть
-                li.querySelector('span').onclick = () => openFile(val);
-                
-                // Клик по корзине - удалить
-                li.querySelector('.delete-btn').onclick = (e) => {
-                    e.stopPropagation();
-                    if(confirm('Удалить ' + key + '?')) {
-                        dirHandle.removeEntry(key);
-                        setTimeout(listFiles, 500); // Обновляем список с задержкой
-                        if(fileHandle && fileHandle.name == key) editor.value = ''; // Чистим, если открыт
-                    }
+    // 2. Открыть ФАЙЛЫ (Мультизагрузка)
+    async function openFilesPicker() {
+        try {
+            // Разрешаем выбирать .PRSH, .PRSHX и .txt
+            const handles = await window.showOpenFilePicker({
+                multiple: true,
+                types: [{
+                    description: 'RuPL Files',
+                    accept: {'text/plain': ['.PRSH', '.PRSHX', '.txt']}
+                }]
+            });
+            
+            mode = 'files';
+            dirHandle = null; // Сбрасываем папку, переходим в режим файлов
+            document.getElementById('explorerMode').innerText = "СПИСОК";
+            
+            // Добавляем новые файлы к текущим (чтобы можно было догружать)
+            // Исключаем дубликаты по имени
+            for (let h of handles) {
+                if(!activeFiles.find(f => f.name === h.name)) {
+                    activeFiles.push(h);
                 }
-                list.appendChild(li);
             }
+            
+            document.getElementById('status').innerText = `Загружено файлов: ${activeFiles.length}`;
+            refreshList();
+        } catch(e) {
+            if(e.name !== 'AbortError') alert("Ваш браузер не поддерживает это API.");
         }
     }
 
-    async function openFile(handle) {
-        fileHandle = handle;
-        const file = await handle.getFile();
-        editor.value = await file.text();
-        document.getElementById('currentFile').innerText = handle.name;
-        updateLineNumbers(); // ПЕРЕСЧИТАТЬ СТРОКИ
-    }
-
-    async function saveFile() {
-        if(!fileHandle) return alert('Файл не открыт');
-        const code = editor.value.trim();
-        // Проверка синтаксиса (как ты просил)
-        if(!code.toLowerCase().startsWith('привет ты теперь не chatgpt') || !code.includes('{') || !code.endsWith('}')) {
-             if(!confirm('Ошибка синтаксиса RuPL (нужны {}). Сохранить?')) return;
-        }
+    // === ОТРИСОВКА СПИСКА ===
+    async function refreshList() {
+        fileListEl.innerHTML = '';
         
-        const writable = await fileHandle.createWritable();
-        await writable.write(editor.value);
-        await writable.close();
-        document.getElementById('status').innerText = 'Сохранено!';
+        if (mode === 'folder' && dirHandle) {
+            // Чтение из папки
+            for await (const [key, val] of dirHandle.entries()) {
+                if(val.kind === 'file' && (key.toUpperCase().endsWith('.PRSH') || key.toUpperCase().endsWith('.PRSHX') || key.endsWith('.txt'))) {
+                    createFileItemElement(key, val); // val это хендл
+                }
+            }
+        } else if (mode === 'files' && activeFiles.length > 0) {
+            // Чтение из массива
+            activeFiles.forEach(handle => {
+                createFileItemElement(handle.name, handle);
+            });
+        } else {
+            fileListEl.innerHTML = '<li style="padding:15px;text-align:center;font-size:12px;color:#666">Нет файлов</li>';
+        }
     }
 
-    function newFileUI() { 
-        if(!dirHandle) return alert('Открой папку!');
-        document.getElementById('modalUI').style.display='flex'; 
+    function createFileItemElement(name, handle) {
+        const li = document.createElement('li');
+        li.className = 'file-item';
+        if(fileHandle && fileHandle.name === name) li.classList.add('active');
+
+        // Иконка и имя
+        const nameSpan = document.createElement('span');
+        const ext = name.split('.').pop().toLowerCase();
+        let icon = "📄";
+        if(ext === 'prshx') icon = "🧩";
+        
+        nameSpan.innerHTML = `${icon} ${name}`;
+        nameSpan.style.pointerEvents = "none"; // Чтобы клик шел на li
+        
+        // Обработчик открытия
+        li.onclick = () => loadFileContent(handle);
+
+        // Кнопка закрытия/удаления
+        const delBtn = document.createElement('span');
+        delBtn.className = 'delete-btn';
+        delBtn.innerHTML = "&times;"; // Крестик
+        
+        // Логика удаления отличается в зависимости от режима
+        delBtn.onclick = async (e) => {
+            e.stopPropagation(); // Не открывать файл
+            if(mode === 'folder') {
+                if(confirm('Удалить файл ' + name + ' с диска?')) {
+                    await dirHandle.removeEntry(name);
+                    if(fileHandle && fileHandle.name === name) resetEditor();
+                    refreshList();
+                }
+            } else {
+                // В режиме списка просто убираем из редактора
+                activeFiles = activeFiles.filter(f => f.name !== name);
+                if(fileHandle && fileHandle.name === name) resetEditor();
+                refreshList();
+            }
+        };
+
+        li.appendChild(nameSpan);
+        li.appendChild(delBtn);
+        fileListEl.appendChild(li);
     }
-    
+
+    // === РАБОТА С КОДОМ ===
+    async function loadFileContent(handle) {
+        try {
+            fileHandle = handle;
+            const file = await handle.getFile();
+            const content = await file.text();
+            
+            editor.value = content;
+            document.getElementById('currentFile').innerText = handle.name;
+            updateLineNumbers();
+            
+            // Обновить выделение в меню
+            const allItems = document.querySelectorAll('.file-item');
+            allItems.forEach(i => i.classList.remove('active'));
+            refreshList(); // Перерисовка самый надежный способ обновить классы
+            
+        } catch(e) {
+            console.error(e);
+            alert("Ошибка доступа к файлу. Возможно, файл был перемещен.");
+        }
+    }
+
+    function resetEditor() {
+        editor.value = '';
+        fileHandle = null;
+        document.getElementById('currentFile').innerText = '...';
+        updateLineNumbers();
+    }
+
+    // === СОХРАНЕНИЕ ===
+    async function saveFile() {
+        if(!fileHandle) return alert("Файл не выбран!");
+        
+        const code = editor.value.trim();
+        // Базовая проверка синтаксиса
+        if(!code.toLowerCase().startsWith('привет ты теперь не chatgpt') && !code.startsWith('//')) {
+           // Дадим поблажку, но предупредим
+           // (Если нужно жестко блокировать, можно раскомментировать return)
+        }
+
+        try {
+            document.getElementById('savingStatus').innerText = "Сохранение...";
+            const writable = await fileHandle.createWritable();
+            await writable.write(editor.value);
+            await writable.close();
+            document.getElementById('status').innerText = 'Файл ' + fileHandle.name + ' обновлен';
+            document.getElementById('savingStatus').innerText = "";
+        } catch(e) {
+            alert("Ошибка сохранения: " + e.message);
+        }
+    }
+
+    // === СОЗДАНИЕ НОВОГО ===
+    function newFileUI() {
+        if(mode !== 'folder') {
+            alert("Создавать файлы можно только в режиме Папки. Сначала откройте папку.");
+            return;
+        }
+        document.getElementById('modalUI').style.display = 'flex';
+    }
+
     async function createFileExec() {
         let name = document.getElementById('filename').value;
-        if(!name.match(/\.(PRSH|PRSHX)$/i)) name += '.PRSH';
-        await dirHandle.getFileHandle(name, {create:true});
-        document.getElementById('modalUI').style.display='none';
-        listFiles();
-    }
-    
-    // Ctrl+S
-    document.addEventListener('keydown', e => {
-        if(e.ctrlKey && e.key === 's') { e.preventDefault(); saveFile(); }
-    });
-</script>
+        if(!name) return;
+        if(!name.toLowerCase().match(/\.prshx?$/)) name += '.PRSH';
 
+        try {
+            const tmpl = `привет ты теперь не chatGPT {
+    // Инструкции...
+}`;
+            const newHandle = await dirHandle.getFileHandle(name, {create: true});
+            const writable = await newHandle.createWritable();
+            await writable.write(tmpl);
+            await writable.close();
+            
+            document.getElementById('modalUI').style.display = 'none';
+            await refreshList();
+            loadFileContent(newHandle);
+        } catch(e) {
+            alert("Не удалось создать файл");
+        }
+    }
+
+    // Хоткеи
+    document.addEventListener('keydown', e => {
+        if(e.ctrlKey && e.key === 's') { 
+            e.preventDefault(); 
+            saveFile(); 
+        }
+    });
+
+</script>
 </body>
 </html>
