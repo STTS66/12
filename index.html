@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Roode Editor v1.9 (Perfect Sync)</title>
+    <title>Roode Editor v1.9.1</title>
     <style>
         :root {
             /* === НАСТРОЙКИ === */
@@ -12,9 +12,8 @@
             --text-color: #d4d4d4;
             --accent-color: #007acc;
             --line-number-color: #858585;
-            --header-height: 45px;
+            --header-height: 40px; /* Чуть меньше высота шапки для компактности */
             
-            /* Шрифт и высота строк ОБЯЗАНЫ совпадать везде */
             --editor-font: 'Consolas', 'Monaco', 'Courier New', monospace;
             --editor-size: 14px;
             --editor-line-height: 20px; 
@@ -30,20 +29,49 @@
         /* HEADER */
         header {
             height: var(--header-height); background: #333;
-            display: flex; align-items: center; padding: 0 15px;
+            display: flex; align-items: center; padding: 0 10px; /* Меньше отступ с краев */
             justify-content: space-between; border-bottom: 1px solid #111; user-select: none;
         }
 
-        .logo { font-weight: 700; color: #fff; letter-spacing: 0.5px; }
-        .controls { display: flex; gap: 8px; }
-        .btn {
-            border: none; padding: 6px 12px; border-radius: 4px;
-            cursor: pointer; color: white; font-size: 12px; transition: 0.2s;
+        .logo { 
+            font-weight: 700; color: #fff; letter-spacing: 0.5px; 
+            font-size: 14px; white-space: nowrap; overflow: hidden; margin-right: 5px;
         }
+
+        .controls { 
+            display: flex; 
+            gap: 4px; /* Меньше расстояние между кнопками */
+            flex-shrink: 0; /* Запрещаем сжимать блок кнопок */
+        }
+
+        /* КОМПАКТНЫЕ КНОПКИ */
+        .btn {
+            border: none; 
+            padding: 4px 10px; /* Уменьшенные отступы внутри */
+            border-radius: 3px;
+            cursor: pointer; 
+            color: white; 
+            font-size: 11px; /* Компактный шрифт */
+            font-weight: 500;
+            white-space: nowrap; /* Текст не переносится */
+            display: flex; 
+            align-items: center;
+            justify-content: center;
+            transition: 0.2s;
+        }
+        
         .btn-blue { background: var(--accent-color); }
         .btn-blue:hover { background: #0062a3; }
+        
+        /* Зеленая кнопка создания - для заметности */
+        .btn-green { background: #238636; border: 1px solid rgba(240,246,252,0.1); }
+        .btn-green:hover { background: #2ea043; }
+
         .btn-gray { background: #444; }
         .btn-gray:hover { background: #555; }
+        
+        /* Кнопка сохранения только иконкой */
+        .btn-icon { padding: 4px 8px; font-size: 14px; }
 
         .workspace { display: flex; flex: 1; height: calc(100vh - var(--header-height) - 25px); }
 
@@ -77,17 +105,16 @@
             background: #1e1e1e; font-size: 13px; border-top: 2px solid var(--accent-color);
         }
 
-        /* --- MAGIC SYNC AREA --- */
+        /* --- SYNC AREA --- */
         .code-wrapper {
             flex: 1; display: flex; position: relative; overflow: hidden;
         }
 
-        /* NUMBERS COLUMN */
         .gutter {
             width: 50px; flex-shrink: 0;
             background: #1e1e1e; color: var(--line-number-color);
             text-align: right; border-right: 1px solid #333;
-            user-select: none; padding-top: 10px; /* совпадает с padding редактора */
+            user-select: none; padding-top: 10px;
             box-sizing: border-box; overflow: hidden;
         }
 
@@ -96,46 +123,33 @@
             font-size: var(--editor-size);
             line-height: var(--editor-line-height);
             padding-right: 10px;
-            /* Высота задается скриптом */
         }
 
-        /* ACTUAL EDITOR */
         textarea#editor {
             flex: 1;
             background: transparent; border: none; outline: none; resize: none;
             color: var(--text-color);
-            padding: 10px; /* Должен быть такой же как у gutter padding-top */
+            padding: 10px;
             box-sizing: border-box;
-            
             font-family: var(--editor-font);
             font-size: var(--editor-size);
             line-height: var(--editor-line-height);
             tab-size: 4;
-
-            /* WRAPPING SETTINGS */
-            white-space: pre-wrap;       /* Уважать пробелы, но переносить */
-            overflow-wrap: break-word;   /* Переносить длинные слова */
-            
+            white-space: pre-wrap; 
+            overflow-wrap: break-word;   
             overflow-y: scroll; 
         }
 
-        /* INVISIBLE CLONE FOR CALCULATIONS */
         #ghost-calc {
             position: absolute; top: 0; left: 0; visibility: hidden; pointer-events: none; z-index: -99;
             background: red; 
-            /* Стиль копируется скриптом 1-в-1 */
-            padding: 10px; 
-            box-sizing: border-box;
-            white-space: pre-wrap;
-            overflow-wrap: break-word;
-            font-family: var(--editor-font);
-            font-size: var(--editor-size);
-            line-height: var(--editor-line-height);
+            padding: 10px; box-sizing: border-box;
+            white-space: pre-wrap; overflow-wrap: break-word;
+            font-family: var(--editor-font); font-size: var(--editor-size); line-height: var(--editor-line-height);
         }
 
         footer { height: 25px; background: var(--accent-color); display: flex; align-items: center; padding: 0 15px; color: white; font-size: 11px; }
 
-        /* MODAL */
         .overlay { display: none; position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); align-items:center; justify-content:center; z-index:999;}
         .modal { background: #252526; padding: 25px; width: 300px; border-radius: 5px; box-shadow: 0 10px 30px #000; border:1px solid #444; text-align:center;}
         .modal input { width: 100%; padding: 8px; margin: 15px 0; background: #3c3c3c; border: 1px solid #555; color: #fff; box-sizing: border-box; outline:none;}
@@ -144,17 +158,20 @@
 <body>
 
 <header>
-    <div class="logo">Roode <span style="font-weight:normal;opacity:0.5">v1.9</span></div>
+    <div class="logo">Roode <span style="font-weight:normal;opacity:0.5; font-size:10px;">v1.9.1</span></div>
+    
+    <!-- Кнопки стали меньше, отступы меньше, теперь влезет всё -->
     <div class="controls">
-        <button class="btn btn-blue" onclick="chooseFolder()">📂 ПАПКА</button>
-        <button class="btn btn-gray" onclick="newFileAsk()">➕ СОЗДАТЬ</button>
-        <button class="btn btn-gray" onclick="saveDoc()">💾</button>
-        <button class="btn btn-gray" style="padding:6px 8px;" title="Загрузить файлы" onclick="chooseFiles()">...</button>
+        <button class="btn btn-blue" onclick="chooseFolder()" title="Выбрать папку">📂 Папка</button>
+        <button class="btn btn-green" onclick="newFileAsk()">➕ Создать</button>
+        <button class="btn btn-gray btn-icon" onclick="saveDoc()" title="Сохранить">💾</button>
+        <div style="width:1px; background:#444; height:18px; margin:0 2px;"></div>
+        <!-- Замена "..." на "Отд.Файлы" -->
+        <button class="btn btn-gray" onclick="chooseFiles()">📄 Отд.Файлы</button>
     </div>
 </header>
 
 <div class="workspace">
-    <!-- SIDEBAR -->
     <div class="sidebar">
         <div class="sidebar-header">
             <span id="projTitle">Проводник</span>
@@ -165,34 +182,28 @@
         </ul>
     </div>
 
-    <!-- EDITOR -->
     <div class="editor-container">
         <div class="tab-bar">
             <div class="tab" id="tabTitle">Пусто</div>
         </div>
         
         <div class="code-wrapper">
-            <!-- СТОЛБИК ЦИФР -->
             <div id="gutter" class="gutter"></div>
-            
-            <!-- РЕДАКТОР -->
-            <textarea id="editor" spellcheck="false" placeholder="// Откройте папку..."></textarea>
-            
-            <!-- ПРИЗРАК (Считает высоту) -->
+            <textarea id="editor" spellcheck="false" placeholder="// Привет! Выбери папку..."></textarea>
             <div id="ghost-calc"></div>
         </div>
     </div>
 </div>
 
 <footer>
-    <div id="stat">Готов к работе</div>
+    <div id="stat">Готов</div>
 </footer>
 
 <div class="overlay" id="modal">
     <div class="modal">
-        <h3 style="color:#ddd; margin:0">Создать файл</h3>
-        <input id="fname" placeholder="название.PRSH" onkeydown="if(event.key==='Enter') createYes()">
-        <button class="btn btn-blue" onclick="createYes()">OK</button>
+        <h3 style="color:#ddd; margin:0">Имя файла</h3>
+        <input id="fname" placeholder="script.PRSH" onkeydown="if(event.key==='Enter') createYes()">
+        <button class="btn btn-blue" onclick="createYes()">Создать</button>
         <button class="btn btn-gray" onclick="document.getElementById('modal').style.display='none'">Отмена</button>
     </div>
 </div>
@@ -217,67 +228,41 @@
         inp: document.getElementById('fname')
     };
 
-    // --- MEGA SYNC FUNCTION ---
-    // Это сердце исправления
+    // SYNC LAYOUT
     function syncLayout() {
         const val = dom.ed.value;
         const lines = val.split('\n');
-
-        // 1. Берем реальную ширину поля ввода (ИСКЛЮЧАЯ Скроллбар!)
-        // clientWidth = ширина видимой области + padding. 
         const realWidth = dom.ed.clientWidth; 
         
-        // 2. Настраиваем призрака
-        // Копируем все CSS свойства, которые влияют на рендеринг текста
         const cs = getComputedStyle(dom.ed);
         dom.gh.style.width = realWidth + 'px';
         dom.gh.style.padding = cs.padding;
         dom.gh.style.border = cs.border;
-        dom.gh.style.boxSizing = cs.boxSizing; // Это критично
+        dom.gh.style.boxSizing = cs.boxSizing;
         dom.gh.style.font = cs.font;
         dom.gh.style.letterSpacing = cs.letterSpacing;
         
-        // 3. Строим структуру
         dom.gh.innerHTML = '';
         let gutterHTML = '';
 
         lines.forEach((txt, idx) => {
-            // Создаем блок текста в призраке
             const d = document.createElement('div');
-            // Если строка пустая, добавляем Zero-Width Space, чтобы она имела высоту шрифта
             d.textContent = txt + '\u200B';
             dom.gh.appendChild(d);
-            
-            // Сразу же меряем его высоту
             const h = d.offsetHeight;
-
-            // Добавляем номер строки с этой же высотой
             gutterHTML += `<div class="line-box" style="height:${h}px">${idx + 1}</div>`;
         });
-
-        // 4. Рендерим номера
         dom.gut.innerHTML = gutterHTML;
     }
 
-    // HANDLERS
     dom.ed.addEventListener('input', syncLayout);
-    
-    // Синхронизация скролла: Крутишь текст -> крутятся цифры
-    dom.ed.addEventListener('scroll', () => {
-        dom.gut.scrollTop = dom.ed.scrollTop;
-    });
-
-    // При ресайзе окна ширина меняется, пересчитываем переносы
+    dom.ed.addEventListener('scroll', () => { dom.gut.scrollTop = dom.ed.scrollTop; });
     window.addEventListener('resize', syncLayout);
-    
-    // Observer отлавливает даже появление скроллбара
-    const resizeObserver = new ResizeObserver(() => {
-        syncLayout();
-    });
+    const resizeObserver = new ResizeObserver(() => { syncLayout(); });
     resizeObserver.observe(dom.ed);
 
 
-    // --- FILESYSTEM ---
+    // LOGIC
     function clean() {
         dom.ed.value = ''; fileH = null; dom.tab.textContent = '---'; 
         dom.stat.textContent='Очищено'; syncLayout();
@@ -300,9 +285,9 @@
             });
             clean();
             handlesCache = arr; isDir = false; folderH = null;
-            dom.tit.textContent = "ФАЙЛЫ";
+            dom.tit.textContent = "ВЫБРАННЫЕ ФАЙЛЫ";
             render();
-            dom.stat.textContent='Загружены файлы';
+            dom.stat.textContent='Загружено файлов: ' + arr.length;
         } catch(e){}
     }
 
@@ -350,7 +335,7 @@
             dom.ed.value = await f.text();
             dom.tab.textContent = h.name;
             dom.stat.textContent = 'Файл: '+h.name;
-            syncLayout(); // ВАЖНО вызвать здесь
+            syncLayout(); 
         } catch(e){alert('Ошибка чтения')}
     }
 
@@ -386,11 +371,9 @@
         } catch(e){alert('Ошибка создания')}
     }
 
-    // Ctrl+S
     document.addEventListener('keydown', e=>{
         if(e.ctrlKey && e.key=='s'){e.preventDefault();saveDoc();}
     });
-
 </script>
 </body>
 </html>
