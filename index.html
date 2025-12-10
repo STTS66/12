@@ -3,17 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Roode Editor v1.9.1</title>
+    <title>Roode Editor v1.9.2 (Wrap Fix)</title>
     <style>
         :root {
-            /* === НАСТРОЙКИ === */
+            /* НАСТРОЙКИ */
             --bg-color: #1e1e1e;
             --sidebar-color: #252526;
             --text-color: #d4d4d4;
             --accent-color: #007acc;
             --line-number-color: #858585;
-            --header-height: 40px; /* Чуть меньше высота шапки для компактности */
+            --header-height: 40px;
             
+            /* ЕДИНЫЙ ШРИФТ ДЛЯ ВСЕГО */
             --editor-font: 'Consolas', 'Monaco', 'Courier New', monospace;
             --editor-size: 14px;
             --editor-line-height: 20px; 
@@ -29,48 +30,26 @@
         /* HEADER */
         header {
             height: var(--header-height); background: #333;
-            display: flex; align-items: center; padding: 0 10px; /* Меньше отступ с краев */
+            display: flex; align-items: center; padding: 0 10px;
             justify-content: space-between; border-bottom: 1px solid #111; user-select: none;
         }
 
         .logo { 
             font-weight: 700; color: #fff; letter-spacing: 0.5px; 
-            font-size: 14px; white-space: nowrap; overflow: hidden; margin-right: 5px;
+            font-size: 14px; margin-right: 5px;
         }
-
-        .controls { 
-            display: flex; 
-            gap: 4px; /* Меньше расстояние между кнопками */
-            flex-shrink: 0; /* Запрещаем сжимать блок кнопок */
-        }
-
-        /* КОМПАКТНЫЕ КНОПКИ */
+        .controls { display: flex; gap: 4px; }
         .btn {
-            border: none; 
-            padding: 4px 10px; /* Уменьшенные отступы внутри */
-            border-radius: 3px;
-            cursor: pointer; 
-            color: white; 
-            font-size: 11px; /* Компактный шрифт */
-            font-weight: 500;
-            white-space: nowrap; /* Текст не переносится */
-            display: flex; 
-            align-items: center;
-            justify-content: center;
-            transition: 0.2s;
+            border: none; padding: 4px 10px; border-radius: 3px; cursor: pointer; color: white; 
+            font-size: 11px; font-weight: 500; display: flex; align-items: center; 
+            white-space: nowrap; transition: 0.2s;
         }
-        
         .btn-blue { background: var(--accent-color); }
         .btn-blue:hover { background: #0062a3; }
-        
-        /* Зеленая кнопка создания - для заметности */
         .btn-green { background: #238636; border: 1px solid rgba(240,246,252,0.1); }
         .btn-green:hover { background: #2ea043; }
-
         .btn-gray { background: #444; }
         .btn-gray:hover { background: #555; }
-        
-        /* Кнопка сохранения только иконкой */
         .btn-icon { padding: 4px 8px; font-size: 14px; }
 
         .workspace { display: flex; flex: 1; height: calc(100vh - var(--header-height) - 25px); }
@@ -95,7 +74,7 @@
         .file-item:hover .del-btn { opacity: 1; }
         .del-btn:hover { color: #f44; }
 
-        /* EDITOR WRAPPER */
+        /* EDITOR CONTAINER */
         .editor-container {
             flex: 1; display: flex; flex-direction: column; position: relative; background: var(--bg-color);
         }
@@ -105,7 +84,7 @@
             background: #1e1e1e; font-size: 13px; border-top: 2px solid var(--accent-color);
         }
 
-        /* --- SYNC AREA --- */
+        /* --- SYNC & WRAPPING FIX --- */
         .code-wrapper {
             flex: 1; display: flex; position: relative; overflow: hidden;
         }
@@ -117,12 +96,14 @@
             user-select: none; padding-top: 10px;
             box-sizing: border-box; overflow: hidden;
         }
-
+        
+        /* Блок, содержащий одну цифру */
         .line-box {
             font-family: var(--editor-font);
             font-size: var(--editor-size);
             line-height: var(--editor-line-height);
             padding-right: 10px;
+            /* Высота этого блока будет выставлена JS */
         }
 
         textarea#editor {
@@ -131,21 +112,35 @@
             color: var(--text-color);
             padding: 10px;
             box-sizing: border-box;
+            
             font-family: var(--editor-font);
             font-size: var(--editor-size);
             line-height: var(--editor-line-height);
             tab-size: 4;
-            white-space: pre-wrap; 
-            overflow-wrap: break-word;   
+            
+            /* КЛЮЧЕВОЙ ФИКС: ЗАСТАВЛЯЕМ ПЕРЕНОСИТЬ ВЕЗДЕ ОДИНАКОВО */
+            white-space: pre-wrap;       
+            overflow-wrap: anywhere;  /* Самый агрессивный перенос (для хештегов и тд) */
+            word-break: break-word;   
+            
             overflow-y: scroll; 
         }
 
+        /* Теневой элемент для расчетов */
         #ghost-calc {
             position: absolute; top: 0; left: 0; visibility: hidden; pointer-events: none; z-index: -99;
             background: red; 
             padding: 10px; box-sizing: border-box;
-            white-space: pre-wrap; overflow-wrap: break-word;
-            font-family: var(--editor-font); font-size: var(--editor-size); line-height: var(--editor-line-height);
+            
+            /* Стиль копируется с textarea */
+            font-family: var(--editor-font);
+            font-size: var(--editor-size);
+            line-height: var(--editor-line-height);
+            
+            /* Эти параметры должны совпадать на 100% с редактором */
+            white-space: pre-wrap;
+            overflow-wrap: anywhere;
+            word-break: break-word;
         }
 
         footer { height: 25px; background: var(--accent-color); display: flex; align-items: center; padding: 0 15px; color: white; font-size: 11px; }
@@ -158,15 +153,13 @@
 <body>
 
 <header>
-    <div class="logo">Roode <span style="font-weight:normal;opacity:0.5; font-size:10px;">v1.9.1</span></div>
+    <div class="logo">Roode <span style="font-weight:normal;opacity:0.5; font-size:10px;">v1.9.2</span></div>
     
-    <!-- Кнопки стали меньше, отступы меньше, теперь влезет всё -->
     <div class="controls">
         <button class="btn btn-blue" onclick="chooseFolder()" title="Выбрать папку">📂 Папка</button>
         <button class="btn btn-green" onclick="newFileAsk()">➕ Создать</button>
         <button class="btn btn-gray btn-icon" onclick="saveDoc()" title="Сохранить">💾</button>
         <div style="width:1px; background:#444; height:18px; margin:0 2px;"></div>
-        <!-- Замена "..." на "Отд.Файлы" -->
         <button class="btn btn-gray" onclick="chooseFiles()">📄 Отд.Файлы</button>
     </div>
 </header>
@@ -188,8 +181,13 @@
         </div>
         
         <div class="code-wrapper">
+            <!-- Столбик цифр -->
             <div id="gutter" class="gutter"></div>
-            <textarea id="editor" spellcheck="false" placeholder="// Привет! Выбери папку..."></textarea>
+            
+            <!-- Поле ввода -->
+            <textarea id="editor" spellcheck="false" placeholder="// Вставь свой код сюда для теста..."></textarea>
+            
+            <!-- Призрак для расчета высоты -->
             <div id="ghost-calc"></div>
         </div>
     </div>
@@ -209,13 +207,13 @@
 </div>
 
 <script>
-    // VARS
+    // ПЕРЕМЕННЫЕ
     let folderH = null;
     let fileH = null;
     let isDir = false;
     let handlesCache = [];
 
-    // DOM ELEMENTS
+    // ЭЛЕМЕНТЫ DOM
     const dom = {
         ed: document.getElementById('editor'),
         gut: document.getElementById('gutter'),
@@ -228,41 +226,61 @@
         inp: document.getElementById('fname')
     };
 
-    // SYNC LAYOUT
+    // === ГЛАВНЫЙ ФИКС СИНХРОНИЗАЦИИ ===
     function syncLayout() {
         const val = dom.ed.value;
         const lines = val.split('\n');
-        const realWidth = dom.ed.clientWidth; 
         
+        // 1. Узнаем ширину видимой части редактора (без полосы прокрутки)
+        // clientWidth автоматически вычитает полосу прокрутки!
+        const innerWidth = dom.ed.clientWidth;
+        
+        // 2. Настраиваем призрака идентично редактору
         const cs = getComputedStyle(dom.ed);
-        dom.gh.style.width = realWidth + 'px';
-        dom.gh.style.padding = cs.padding;
-        dom.gh.style.border = cs.border;
-        dom.gh.style.boxSizing = cs.boxSizing;
-        dom.gh.style.font = cs.font;
-        dom.gh.style.letterSpacing = cs.letterSpacing;
         
+        // Передаем призраку ту же ширину контента и отступы
+        dom.gh.style.width = innerWidth + 'px';
+        dom.gh.style.padding = cs.padding;
+        dom.gh.style.boxSizing = cs.boxSizing;
+        
+        // Передаем настройки шрифта и, что важно, параметры переноса
+        dom.gh.style.font = cs.font;
+        dom.gh.style.lineHeight = cs.lineHeight;
+        dom.gh.style.letterSpacing = cs.letterSpacing;
+        dom.gh.style.whiteSpace = cs.whiteSpace;    // pre-wrap
+        dom.gh.style.overflowWrap = cs.overflowWrap; // anywhere (FIX)
+        dom.gh.style.wordBreak = cs.wordBreak;       // break-word (FIX)
+
         dom.gh.innerHTML = '';
         let gutterHTML = '';
 
+        // 3. Строим двойника
         lines.forEach((txt, idx) => {
             const d = document.createElement('div');
-            d.textContent = txt + '\u200B';
+            // Важно! Если строка пустая, добавляем пробел, чтобы она имела высоту
+            d.textContent = txt === '' ? ' ' : txt;
+            
+            // Если в строке есть длинный сплошной текст, призрак разобьет его 
+            // так же как textarea из-за свойства overflow-wrap: anywhere
             dom.gh.appendChild(d);
+            
+            // Берем реальную высоту получившегося блока
             const h = d.offsetHeight;
             gutterHTML += `<div class="line-box" style="height:${h}px">${idx + 1}</div>`;
         });
+        
         dom.gut.innerHTML = gutterHTML;
     }
 
+    // Обработчики для синхронизации
     dom.ed.addEventListener('input', syncLayout);
     dom.ed.addEventListener('scroll', () => { dom.gut.scrollTop = dom.ed.scrollTop; });
     window.addEventListener('resize', syncLayout);
-    const resizeObserver = new ResizeObserver(() => { syncLayout(); });
-    resizeObserver.observe(dom.ed);
+    // Наблюдатель (если скроллбар появится, ширина изменится - пересчитаем)
+    new ResizeObserver(syncLayout).observe(dom.ed);
 
 
-    // LOGIC
+    // --- ОСТАЛЬНАЯ ЛОГИКА ---
     function clean() {
         dom.ed.value = ''; fileH = null; dom.tab.textContent = '---'; 
         dom.stat.textContent='Очищено'; syncLayout();
@@ -287,14 +305,13 @@
             handlesCache = arr; isDir = false; folderH = null;
             dom.tit.textContent = "ВЫБРАННЫЕ ФАЙЛЫ";
             render();
-            dom.stat.textContent='Загружено файлов: ' + arr.length;
+            dom.stat.textContent='Файлов: ' + arr.length;
         } catch(e){}
     }
 
     async function render() {
         dom.list.innerHTML='';
         const arr = [];
-        
         if(isDir && folderH) {
             for await (const [n,h] of folderH.entries()) {
                 if(h.kind=='file' && n.toUpperCase().match(/\.(PRSH|PRSHX|TXT)$/)) arr.push(h);
@@ -302,7 +319,6 @@
         } else if(!isDir) {
             arr.push(...handlesCache);
         }
-
         if(arr.length==0) return dom.list.innerHTML='<li style="padding:15px;color:#666;text-align:center">Пусто</li>';
 
         arr.sort((a,b)=>a.name.localeCompare(b.name)).forEach(h => {
@@ -310,7 +326,6 @@
             li.className='file-item';
             const ico = h.name.match(/\.PRSHX/i) ? '🧩':'📄';
             li.innerHTML = `<span>${ico} ${h.name}</span> <span class="del-btn">✕</span>`;
-            
             li.onclick = (e) => {
                 if(e.target.className=='del-btn') return;
                 loadFile(h);
@@ -334,8 +349,9 @@
             const f = await h.getFile();
             dom.ed.value = await f.text();
             dom.tab.textContent = h.name;
-            dom.stat.textContent = 'Файл: '+h.name;
-            syncLayout(); 
+            dom.stat.textContent = h.name;
+            // Костыль, чтобы рендер шрифта успел произойти перед расчетом
+            setTimeout(syncLayout, 0); 
         } catch(e){alert('Ошибка чтения')}
     }
 
