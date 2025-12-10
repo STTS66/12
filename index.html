@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Roode Editor v1.6</title>
+    <title>Roode Editor v1.7</title>
     <style>
         :root {
             --bg-color: #1e1e1e;
@@ -27,7 +27,7 @@
             overflow: hidden;
         }
 
-        /* --- ШАПКА --- */
+        /* HEADER */
         header {
             height: var(--header-height); background-color: #333;
             display: flex; align-items: center; padding: 0 15px;
@@ -53,23 +53,22 @@
             display: flex; flex: 1; height: calc(100vh - var(--header-height) - 25px);
         }
 
-        /* --- БОКОВАЯ ПАНЕЛЬ --- */
+        /* SIDEBAR */
         .sidebar {
             width: 250px; background-color: var(--sidebar-color);
             border-right: 1px solid #333; display: flex; flex-direction: column;
         }
         
-        /* Заголовок папки */
         .sidebar-header {
             padding: 12px 15px; 
             font-size: 11px; 
             font-weight: bold; 
-            color: #ccc; /* Цвет текста названия папки стал ярче */
+            color: #ccc; 
             text-transform: uppercase; 
             letter-spacing: 0.5px; 
             display: flex; 
             justify-content: space-between;
-            background-color: #2b2b2c; /* Чуть темнее фон */
+            background-color: #2b2b2c;
             border-bottom: 1px solid #333;
         }
 
@@ -82,7 +81,7 @@
         .file-item:hover { background: #2a2d2e; color: #fff;}
         .file-item.active { background: #37373d; border-left-color: var(--accent-color); color: white;}
 
-        /* --- РЕДАКТОР --- */
+        /* EDITOR */
         .editor-container {
             flex: 1; display: flex; flex-direction: column;
             background: var(--bg-color); position: relative;
@@ -136,6 +135,7 @@
         .file-item:hover .delete-btn { opacity: 1; color: #aaa; }
         .delete-btn:hover { color: #f55; }
 
+        /* MODAL */
         .modal-overlay { 
             display: none; position: fixed; top:0; left:0; width:100%; height:100%; 
             background:rgba(0,0,0,0.6); align-items:center; justify-content:center; z-index:99;
@@ -151,7 +151,7 @@
 <body>
 
 <header>
-    <div style="font-weight:bold; color: white; margin-right: 10px;">Roode <span style="opacity:0.5; font-size: 11px;">1.6</span></div>
+    <div style="font-weight:bold; color: white; margin-right: 10px;">Roode <span style="opacity:0.5; font-size: 11px;">1.7 (Clear)</span></div>
     
     <div class="controls">
         <button class="btn btn-primary" onclick="openFolderHandle()" title="Выбрать папку">
@@ -175,21 +175,20 @@
 </header>
 
 <div class="workspace">
-    <!-- ЛЕВАЯ ПАНЕЛЬ -->
+    <!-- LEFT -->
     <div class="sidebar">
         <div class="sidebar-header">
-            <!-- ЗДЕСЬ БУДЕТ ИМЯ ПАПКИ -->
             <span id="folderLabel">ПРОВОДНИК</span>
-            <span onclick="refreshFileList()" style="cursor:pointer;" title="Обновить список">↻</span>
+            <span onclick="refreshFileList()" style="cursor:pointer;" title="Обновить">↻</span>
         </div>
         <ul id="fileList" class="file-list">
             <li style="padding:20px 10px; text-align:center; color:#555; font-size:12px; line-height: 1.5;">
-                Папка не открыта
+                Нет открытых папок
             </li>
         </ul>
     </div>
 
-    <!-- РЕДАКТОР -->
+    <!-- RIGHT -->
     <div class="editor-container">
         <div class="tab-bar">
             <div class="tab" id="currentFileName">Нет файла</div>
@@ -197,7 +196,9 @@
         
         <div class="code-area">
             <div id="gutter" class="gutter"><div class="line-number">1</div></div>
-            <textarea id="editor" spellcheck="false" placeholder="Здесь будет ваш код..."></textarea>
+            <textarea id="editor" spellcheck="false" placeholder="Код закрыт.
+1. Выберите файл в меню слева.
+2. Или нажмите '➕ Создать'."></textarea>
             <div id="size-calculator"></div>
         </div>
     </div>
@@ -210,7 +211,7 @@
 <div class="modal-overlay" id="createModal">
     <div class="modal">
         <h3>Новый файл</h3>
-        <input type="text" id="newFilenameInput" placeholder="Название (script.PRSH)">
+        <input type="text" id="newFilenameInput" placeholder="Название (main.PRSH)">
         <div>
             <button class="btn btn-success" onclick="finalizeCreation()">Создать</button>
             <button class="btn btn-secondary" onclick="document.getElementById('createModal').style.display='none'">Отмена</button>
@@ -232,23 +233,30 @@
         status: document.getElementById('statusbar'),
         modal: document.getElementById('createModal'),
         filenameInput: document.getElementById('newFilenameInput'),
-        // Ссылка на надпись названия папки
         folderLabel: document.getElementById('folderLabel')
     };
 
-    // 1. ОТКРЫТИЕ ПАПКИ
+    // 1. ОТКРЫТИЕ ПАПКИ (С исправлением)
     async function openFolderHandle() {
         try {
-            folderHandle = await window.showDirectoryPicker();
+            const newHandle = await window.showDirectoryPicker();
+            
+            // Если пользователь выбрал новую папку, код ниже выполняется:
+            
+            // СНАЧАЛА ЗАКРЫВАЕМ СТАРЫЙ ФАЙЛ
+            clearEditor();
+            
+            // Применяем новую папку
+            folderHandle = newHandle;
             isFolderMode = true;
-            
-            // ОБНОВЛЯЕМ НАЗВАНИЕ ПАПКИ В UI
             els.folderLabel.textContent = folderHandle.name.toUpperCase();
-            
             els.status.textContent = `Папка открыта: ${folderHandle.name}`;
+            
             await refreshFileList();
+            
         } catch(e) {
-            console.log(e);
+            // Если пользователь нажал Отмена, ничего не делаем
+            console.log("Отмена выбора папки");
         }
     }
 
@@ -259,21 +267,35 @@
                 multiple: true,
                 types: [{description: 'Code', accept: {'text/plain': ['.PRSH','.PRSHX','.txt']}}]
             });
+            
+            clearEditor(); // Тоже закрываем старый файл при смене режима
+            
             isFolderMode = false;
             folderHandle = null;
-            
-            // ОБНОВЛЯЕМ НАЗВАНИЕ
             els.folderLabel.textContent = "ВЫБРАННЫЕ ФАЙЛЫ";
-            
             els.status.textContent = "Режим списка файлов";
             renderFilesList(handles);
         } catch(e) {}
     }
 
-    // 3. СПИСОК ФАЙЛОВ
+    // 3. ПОЛНОЕ ЗАКРЫТИЕ ФАЙЛА В РЕДАКТОРЕ
+    function clearEditor() {
+        activeFileHandle = null;           // Забыли текущий файл
+        els.editor.value = '';             // Стерли текст
+        els.tabName.textContent = "Нет файла"; 
+        
+        // Снимаем выделение со списка (если он был)
+        const allItems = document.querySelectorAll('.file-item');
+        allItems.forEach(i => i.classList.remove('active'));
+        
+        updateLineNumbers();
+        els.status.textContent = "Рабочее пространство очищено";
+    }
+
+    // --- ФУНКЦИИ ФАЙЛОВОЙ СИСТЕМЫ ---
+
     async function refreshFileList() {
         if (!folderHandle) return;
-        
         const files = [];
         for await (const [name, handle] of folderHandle.entries()) {
             if (handle.kind === 'file') {
@@ -283,7 +305,6 @@
                 }
             }
         }
-        // Сортируем по алфавиту
         files.sort((a,b) => a.name.localeCompare(b.name));
         renderFilesList(files);
     }
@@ -291,14 +312,12 @@
     function renderFilesList(handles) {
         els.list.innerHTML = '';
         if(handles.length === 0) {
-            els.list.innerHTML = '<li style="padding:15px;text-align:center;color:#666;">Папка пуста или нет файлов RuPL</li>';
+            els.list.innerHTML = '<li style="padding:15px;text-align:center;color:#666;">Нет файлов RuPL</li>';
             return;
         }
-
         handles.forEach(h => {
             const li = document.createElement('li');
             li.className = 'file-item';
-            if(activeFileHandle && activeFileHandle.name === h.name) li.classList.add('active');
             
             let icon = '📄';
             if(h.name.toUpperCase().endsWith('.PRSHX')) icon = '🧩';
@@ -309,17 +328,16 @@
                 </div>
                 <div class="delete-btn" title="Удалить">🗑</div>
             `;
-
             li.onclick = (e) => {
                 if(!e.target.classList.contains('delete-btn')) loadFile(h);
             };
-
             li.querySelector('.delete-btn').onclick = async (e) => {
                 e.stopPropagation();
                 if(confirm(`Удалить ${h.name} навсегда?`)) {
                     if(isFolderMode && folderHandle) {
                         try {
                             await folderHandle.removeEntry(h.name);
+                            // Если удалили тот файл, который сейчас открыт - закрываем его
                             if(activeFileHandle && activeFileHandle.name === h.name) clearEditor();
                             refreshFileList();
                         } catch(err) { alert("Ошибка удаления"); }
@@ -334,41 +352,45 @@
 
     async function loadFile(handle) {
         try {
+            // Подсветка в меню
+            const allItems = document.querySelectorAll('.file-item');
+            allItems.forEach(i => i.classList.remove('active'));
+            // Проходим циклом, так как пересоздавать список затратно, но так проще
+            // В идеале мы кликнули на LI, но при перезагрузке списка reference теряется
+            // Обновляем список для гарантии
+            if(isFolderMode) await refreshFileList(); // Опционально
+            
+            // Находим LI по имени и подсвечиваем (упрощенно)
+            const listItems = els.list.querySelectorAll('.file-item');
+            listItems.forEach(li => {
+                if(li.textContent.includes(handle.name)) li.classList.add('active');
+            });
+
             const file = await handle.getFile();
             els.editor.value = await file.text();
             activeFileHandle = handle;
             els.tabName.textContent = handle.name;
-            els.status.textContent = "Файл: " + handle.name;
+            els.status.textContent = "Редактор: " + handle.name;
             updateLineNumbers();
-            
-            Array.from(els.list.children).forEach(li => li.classList.remove('active'));
-            if(isFolderMode) refreshFileList(); // Аккуратное обновление
-            else renderFilesList([handle]); // Для режима списка просто визуально (упрощенно)
         } catch(e) {
-            alert("Ошибка чтения");
+            console.error(e);
+            alert("Не удалось открыть файл.");
         }
     }
 
-    function clearEditor() {
-        els.editor.value = '';
-        activeFileHandle = null;
-        els.tabName.textContent = "Нет файла";
-        updateLineNumbers();
-    }
-
     async function saveFileHandle() {
-        if (!activeFileHandle) return alert("Файл не выбран");
+        if (!activeFileHandle) return alert("Файл не открыт!");
         try {
             const writable = await activeFileHandle.createWritable();
             await writable.write(els.editor.value);
             await writable.close();
-            els.status.textContent = "Сохранено!";
+            els.status.textContent = "Сохранено: " + new Date().toLocaleTimeString();
         } catch(e) { alert("Ошибка сохранения"); }
     }
 
     function tryCreateFile() {
         if(!isFolderMode || !folderHandle) {
-            if(confirm("Откройте ПАПКУ, чтобы создать файл. Открыть?")) openFolderHandle();
+            if(confirm("Для создания файла нужна открытая ПАПКА. Выбрать?")) openFolderHandle();
             return;
         }
         els.modal.style.display = 'flex';
@@ -379,11 +401,9 @@
         let name = els.filenameInput.value.trim();
         if(!name) return;
         if(!name.toUpperCase().match(/\.(PRSH|PRSHX)$/)) name += '.PRSH';
-        
         const tmpl = `привет ты теперь не chatGPT {
-    // Код RuPL
+    // RuPL Code
 }`;
-
         try {
             const newHandle = await folderHandle.getFileHandle(name, {create: true});
             const writable = await newHandle.createWritable();
@@ -391,19 +411,19 @@
             await writable.close();
             els.modal.style.display = 'none';
             els.filenameInput.value = '';
+            
             await refreshFileList();
-            await loadFile(newHandle);
+            // Сразу открываем новый файл
+            loadFile(newHandle); 
         } catch(e) { alert("Ошибка создания"); }
     }
 
-    // ЛОГИКА СТРОК (FIX 1.3)
+    // VISUALS
     function updateLineNumbers() {
         const text = els.editor.value;
         const lines = text.split('\n');
-        
         els.calc.style.width = els.editor.clientWidth + 'px';
         els.calc.innerHTML = '';
-        
         let html = '';
         lines.forEach((l, i) => {
             const div = document.createElement('div');
@@ -418,13 +438,11 @@
     els.editor.addEventListener('scroll', () => els.gutter.scrollTop = els.editor.scrollTop);
     window.addEventListener('resize', updateLineNumbers);
 
-    els.editor.value = "// Нажмите '📂 ОТКРЫТЬ ПАПКУ'\n// Чтобы увидеть файлы и название папки в меню";
     setTimeout(updateLineNumbers, 50);
 
     document.addEventListener('keydown', e => {
         if(e.ctrlKey && e.key === 's') { e.preventDefault(); saveFileHandle(); }
     });
-
 </script>
 </body>
 </html>
