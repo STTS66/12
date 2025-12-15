@@ -3,10 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Roode Editor v1.9.2 (Wrap Fix)</title>
+    <title>Roode v2.0 (No Wrap)</title>
     <style>
         :root {
-            /* НАСТРОЙКИ */
             --bg-color: #1e1e1e;
             --sidebar-color: #252526;
             --text-color: #d4d4d4;
@@ -14,7 +13,7 @@
             --line-number-color: #858585;
             --header-height: 40px;
             
-            /* ЕДИНЫЙ ШРИФТ ДЛЯ ВСЕГО */
+            /* ЕДИНЫЙ ШРИФТ ВЕЗДЕ */
             --editor-font: 'Consolas', 'Monaco', 'Courier New', monospace;
             --editor-size: 14px;
             --editor-line-height: 20px; 
@@ -33,79 +32,70 @@
             display: flex; align-items: center; padding: 0 10px;
             justify-content: space-between; border-bottom: 1px solid #111; user-select: none;
         }
-
-        .logo { 
-            font-weight: 700; color: #fff; letter-spacing: 0.5px; 
-            font-size: 14px; margin-right: 5px;
-        }
-        .controls { display: flex; gap: 4px; }
+        .controls { display: flex; gap: 6px; }
+        .logo { font-weight: bold; color: white; margin-right: 10px; font-size: 14px;}
         .btn {
-            border: none; padding: 4px 10px; border-radius: 3px; cursor: pointer; color: white; 
-            font-size: 11px; font-weight: 500; display: flex; align-items: center; 
-            white-space: nowrap; transition: 0.2s;
+            border: none; padding: 5px 10px; border-radius: 3px; cursor: pointer; color: white; 
+            font-size: 11px; display: flex; align-items: center; transition: 0.2s; white-space: nowrap;
         }
-        .btn-blue { background: var(--accent-color); }
-        .btn-blue:hover { background: #0062a3; }
-        .btn-green { background: #238636; border: 1px solid rgba(240,246,252,0.1); }
-        .btn-green:hover { background: #2ea043; }
-        .btn-gray { background: #444; }
-        .btn-gray:hover { background: #555; }
-        .btn-icon { padding: 4px 8px; font-size: 14px; }
+        .btn-blue { background: var(--accent-color); } .btn-blue:hover{background:#0062a3;}
+        .btn-green { background: #238636; } .btn-green:hover{background:#2ea043;}
+        .btn-gray { background: #444; } .btn-gray:hover{background:#555;}
 
+        /* MAIN LAYOUT */
         .workspace { display: flex; flex: 1; height: calc(100vh - var(--header-height) - 25px); }
 
-        /* SIDEBAR */
         .sidebar {
             width: 250px; background: var(--sidebar-color);
             border-right: 1px solid #333; display: flex; flex-direction: column;
         }
         .sidebar-header {
-            padding: 12px 15px; font-size: 11px; font-weight: bold; color: #aaa;
+            padding: 10px 15px; font-size: 11px; font-weight: bold; color: #aaa;
             text-transform: uppercase; background: #2b2b2c; display: flex; justify-content: space-between;
         }
         .file-list { flex: 1; list-style: none; padding: 0; margin: 0; overflow-y: auto; }
         .file-item {
-            padding: 5px 15px; display: flex; justify-content: space-between; align-items: center;
+            padding: 4px 15px; display: flex; justify-content: space-between; align-items: center;
             font-size: 13px; color: #ccc; cursor: pointer; border-left: 3px solid transparent;
         }
-        .file-item:hover { background: #2a2d2e; color: #fff; }
+        .file-item:hover { background: #2a2d2e; }
         .file-item.active { background: #37373d; border-left-color: var(--accent-color); color: #fff; }
-        .del-btn { opacity: 0; font-weight: bold; color: #777; padding: 0 5px;}
-        .file-item:hover .del-btn { opacity: 1; }
-        .del-btn:hover { color: #f44; }
+        .del-btn { opacity: 0; color: #666; font-weight: bold; margin-left: 5px; }
+        .file-item:hover .del-btn { opacity: 1; } .del-btn:hover { color: #f44; }
 
-        /* EDITOR CONTAINER */
         .editor-container {
-            flex: 1; display: flex; flex-direction: column; position: relative; background: var(--bg-color);
+            flex: 1; display: flex; flex-direction: column; position: relative; background: var(--bg-color); min-width: 0;
         }
-        .tab-bar { height: 35px; background: #252526; display: flex; align-items: center; border-bottom: 1px solid #111; }
+        .tab-bar { height: 35px; background: #252526; display: flex; align-items: center; }
         .tab { 
             padding: 0 15px; height: 100%; display: flex; align-items: center;
             background: #1e1e1e; font-size: 13px; border-top: 2px solid var(--accent-color);
         }
 
-        /* --- SYNC & WRAPPING FIX --- */
+        /* EDITOR AREA */
         .code-wrapper {
-            flex: 1; display: flex; position: relative; overflow: hidden;
+            flex: 1; display: flex; position: relative; overflow: hidden; 
         }
 
+        /* NUMBERS COLUMN */
         .gutter {
-            width: 50px; flex-shrink: 0;
+            width: 45px; flex-shrink: 0;
             background: #1e1e1e; color: var(--line-number-color);
             text-align: right; border-right: 1px solid #333;
-            user-select: none; padding-top: 10px;
-            box-sizing: border-box; overflow: hidden;
+            user-select: none; 
+            overflow: hidden; /* Скроллится синхронно скриптом */
+            padding-top: 10px; /* Совпадает с textarea */
+            box-sizing: border-box;
         }
-        
-        /* Блок, содержащий одну цифру */
-        .line-box {
+        .line-num {
+            height: var(--editor-line-height); /* ФИКСИРОВАННАЯ ВЫСОТА */
+            line-height: var(--editor-line-height);
             font-family: var(--editor-font);
             font-size: var(--editor-size);
-            line-height: var(--editor-line-height);
-            padding-right: 10px;
-            /* Высота этого блока будет выставлена JS */
+            padding-right: 8px;
         }
 
+        /* TEXT INPUT */
         textarea#editor {
             flex: 1;
             background: transparent; border: none; outline: none; resize: none;
@@ -117,279 +107,186 @@
             font-size: var(--editor-size);
             line-height: var(--editor-line-height);
             tab-size: 4;
-            
-            /* КЛЮЧЕВОЙ ФИКС: ЗАСТАВЛЯЕМ ПЕРЕНОСИТЬ ВЕЗДЕ ОДИНАКОВО */
-            white-space: pre-wrap;       
-            overflow-wrap: anywhere;  /* Самый агрессивный перенос (для хештегов и тд) */
-            word-break: break-word;   
-            
+
+            /* == ГЛАВНОЕ ИЗМЕНЕНИЕ == */
+            white-space: pre;   /* ОТКЛЮЧАЕМ ПЕРЕНОС СТРОК */
+            overflow-x: scroll; /* Разрешаем гориз. скролл */
             overflow-y: scroll; 
         }
 
-        /* Теневой элемент для расчетов */
-        #ghost-calc {
-            position: absolute; top: 0; left: 0; visibility: hidden; pointer-events: none; z-index: -99;
-            background: red; 
-            padding: 10px; box-sizing: border-box;
-            
-            /* Стиль копируется с textarea */
-            font-family: var(--editor-font);
-            font-size: var(--editor-size);
-            line-height: var(--editor-line-height);
-            
-            /* Эти параметры должны совпадать на 100% с редактором */
-            white-space: pre-wrap;
-            overflow-wrap: anywhere;
-            word-break: break-word;
-        }
+        /* SCROLLBAR STYLE */
+        ::-webkit-scrollbar { width: 10px; height: 10px; }
+        ::-webkit-scrollbar-track { background: #1e1e1e; }
+        ::-webkit-scrollbar-thumb { background: #424242; border-radius: 5px; }
+        ::-webkit-scrollbar-thumb:hover { background: #4f4f4f; }
+        /* Уголок скроллбара */
+        ::-webkit-scrollbar-corner { background: #1e1e1e; }
 
         footer { height: 25px; background: var(--accent-color); display: flex; align-items: center; padding: 0 15px; color: white; font-size: 11px; }
 
-        .overlay { display: none; position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); align-items:center; justify-content:center; z-index:999;}
-        .modal { background: #252526; padding: 25px; width: 300px; border-radius: 5px; box-shadow: 0 10px 30px #000; border:1px solid #444; text-align:center;}
-        .modal input { width: 100%; padding: 8px; margin: 15px 0; background: #3c3c3c; border: 1px solid #555; color: #fff; box-sizing: border-box; outline:none;}
+        /* Modal */
+        .overlay { display: none; position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); align-items:center; justify-content:center; z-index:99;}
+        .modal { background: #252526; padding: 20px; width: 300px; border:1px solid #444; text-align:center;}
+        .modal input { width: 90%; padding: 5px; margin: 10px 0; background: #3c3c3c; border: 1px solid #555; color: #fff;}
+
     </style>
 </head>
 <body>
 
 <header>
-    <div class="logo">Roode <span style="font-weight:normal;opacity:0.5; font-size:10px;">v1.9.2</span></div>
-    
+    <div class="logo">Roode <span style="font-size:10px;opacity:0.5">2.0</span></div>
     <div class="controls">
-        <button class="btn btn-blue" onclick="chooseFolder()" title="Выбрать папку">📂 Папка</button>
-        <button class="btn btn-green" onclick="newFileAsk()">➕ Создать</button>
-        <button class="btn btn-gray btn-icon" onclick="saveDoc()" title="Сохранить">💾</button>
-        <div style="width:1px; background:#444; height:18px; margin:0 2px;"></div>
-        <button class="btn btn-gray" onclick="chooseFiles()">📄 Отд.Файлы</button>
+        <button class="btn btn-blue" onclick="selFolder()">📂 Папка</button>
+        <button class="btn btn-green" onclick="showNew()">➕ Создать</button>
+        <button class="btn btn-gray" onclick="save()">💾</button>
+        <button class="btn btn-gray" onclick="selFiles()">📄 Отд. Файлы</button>
     </div>
 </header>
 
 <div class="workspace">
     <div class="sidebar">
         <div class="sidebar-header">
-            <span id="projTitle">Проводник</span>
-            <span style="cursor:pointer" onclick="render()">↻</span>
+            <span id="labelHeader">ПРОВОДНИК</span>
+            <span style="cursor:pointer" onclick="listRender()">↻</span>
         </div>
-        <ul id="tree" class="file-list">
-            <li style="padding:15px; text-align:center; color:#555;">Нет данных</li>
-        </ul>
+        <ul id="listUI" class="file-list"></ul>
     </div>
-
     <div class="editor-container">
-        <div class="tab-bar">
-            <div class="tab" id="tabTitle">Пусто</div>
-        </div>
+        <div class="tab-bar"><div class="tab" id="tabInfo">...</div></div>
         
         <div class="code-wrapper">
-            <!-- Столбик цифр -->
             <div id="gutter" class="gutter"></div>
-            
-            <!-- Поле ввода -->
-            <textarea id="editor" spellcheck="false" placeholder="// Вставь свой код сюда для теста..."></textarea>
-            
-            <!-- Призрак для расчета высоты -->
-            <div id="ghost-calc"></div>
+            <!-- Textarea с white-space: pre -->
+            <textarea id="editor" spellcheck="false" placeholder="// В этой версии текст уходит вправо..."></textarea>
         </div>
     </div>
 </div>
 
-<footer>
-    <div id="stat">Готов</div>
-</footer>
+<footer><div id="msg">Готов</div></footer>
 
-<div class="overlay" id="modal">
-    <div class="modal">
-        <h3 style="color:#ddd; margin:0">Имя файла</h3>
-        <input id="fname" placeholder="script.PRSH" onkeydown="if(event.key==='Enter') createYes()">
-        <button class="btn btn-blue" onclick="createYes()">Создать</button>
-        <button class="btn btn-gray" onclick="document.getElementById('modal').style.display='none'">Отмена</button>
-    </div>
-</div>
+<div class="overlay" id="mod"><div class="modal">
+    <h3>Новый файл</h3><input id="fname"><br>
+    <button class="btn btn-blue" onclick="createFile()">OK</button>
+    <button class="btn btn-gray" onclick="document.getElementById('mod').style.display='none'">X</button>
+</div></div>
 
 <script>
-    // ПЕРЕМЕННЫЕ
-    let folderH = null;
-    let fileH = null;
-    let isDir = false;
-    let handlesCache = [];
+    // VARS
+    let fHandle=null, fileH=null, isDir=false, filesCache=[];
+    const ed = document.getElementById('editor');
+    const gut = document.getElementById('gutter');
+    const ui = document.getElementById('listUI');
+    const msg = document.getElementById('msg');
+    const tab = document.getElementById('tabInfo');
+    const label = document.getElementById('labelHeader');
 
-    // ЭЛЕМЕНТЫ DOM
-    const dom = {
-        ed: document.getElementById('editor'),
-        gut: document.getElementById('gutter'),
-        gh: document.getElementById('ghost-calc'),
-        list: document.getElementById('tree'),
-        tit: document.getElementById('projTitle'),
-        tab: document.getElementById('tabTitle'),
-        stat: document.getElementById('stat'),
-        mod: document.getElementById('modal'),
-        inp: document.getElementById('fname')
-    };
-
-    // === ГЛАВНЫЙ ФИКС СИНХРОНИЗАЦИИ ===
-    function syncLayout() {
-        const val = dom.ed.value;
-        const lines = val.split('\n');
+    // == ЛОГИКА ОТРИСОВКИ СТРОК ==
+    // Теперь она простая и надежная, так как высота строк не меняется
+    function updateLines() {
+        const val = ed.value;
+        // Просто считаем символы \n
+        const linesCount = val.split('\n').length;
         
-        // 1. Узнаем ширину видимой части редактора (без полосы прокрутки)
-        // clientWidth автоматически вычитает полосу прокрутки!
-        const innerWidth = dom.ed.clientWidth;
-        
-        // 2. Настраиваем призрака идентично редактору
-        const cs = getComputedStyle(dom.ed);
-        
-        // Передаем призраку ту же ширину контента и отступы
-        dom.gh.style.width = innerWidth + 'px';
-        dom.gh.style.padding = cs.padding;
-        dom.gh.style.boxSizing = cs.boxSizing;
-        
-        // Передаем настройки шрифта и, что важно, параметры переноса
-        dom.gh.style.font = cs.font;
-        dom.gh.style.lineHeight = cs.lineHeight;
-        dom.gh.style.letterSpacing = cs.letterSpacing;
-        dom.gh.style.whiteSpace = cs.whiteSpace;    // pre-wrap
-        dom.gh.style.overflowWrap = cs.overflowWrap; // anywhere (FIX)
-        dom.gh.style.wordBreak = cs.wordBreak;       // break-word (FIX)
-
-        dom.gh.innerHTML = '';
-        let gutterHTML = '';
-
-        // 3. Строим двойника
-        lines.forEach((txt, idx) => {
-            const d = document.createElement('div');
-            // Важно! Если строка пустая, добавляем пробел, чтобы она имела высоту
-            d.textContent = txt === '' ? ' ' : txt;
-            
-            // Если в строке есть длинный сплошной текст, призрак разобьет его 
-            // так же как textarea из-за свойства overflow-wrap: anywhere
-            dom.gh.appendChild(d);
-            
-            // Берем реальную высоту получившегося блока
-            const h = d.offsetHeight;
-            gutterHTML += `<div class="line-box" style="height:${h}px">${idx + 1}</div>`;
-        });
-        
-        dom.gut.innerHTML = gutterHTML;
-    }
-
-    // Обработчики для синхронизации
-    dom.ed.addEventListener('input', syncLayout);
-    dom.ed.addEventListener('scroll', () => { dom.gut.scrollTop = dom.ed.scrollTop; });
-    window.addEventListener('resize', syncLayout);
-    // Наблюдатель (если скроллбар появится, ширина изменится - пересчитаем)
-    new ResizeObserver(syncLayout).observe(dom.ed);
-
-
-    // --- ОСТАЛЬНАЯ ЛОГИКА ---
-    function clean() {
-        dom.ed.value = ''; fileH = null; dom.tab.textContent = '---'; 
-        dom.stat.textContent='Очищено'; syncLayout();
-    }
-
-    async function chooseFolder() {
-        try {
-            const h = await window.showDirectoryPicker();
-            folderH = h; isDir = true; clean();
-            dom.tit.textContent = h.name.toUpperCase();
-            render();
-            dom.stat.textContent='Папка открыта';
-        } catch(e){}
-    }
-
-    async function chooseFiles() {
-        try {
-            const arr = await window.showOpenFilePicker({
-                multiple:true, types:[{description:'Code',accept:{'text/plain':['.prsh','.prshx','.txt']}}]
-            });
-            clean();
-            handlesCache = arr; isDir = false; folderH = null;
-            dom.tit.textContent = "ВЫБРАННЫЕ ФАЙЛЫ";
-            render();
-            dom.stat.textContent='Файлов: ' + arr.length;
-        } catch(e){}
-    }
-
-    async function render() {
-        dom.list.innerHTML='';
-        const arr = [];
-        if(isDir && folderH) {
-            for await (const [n,h] of folderH.entries()) {
-                if(h.kind=='file' && n.toUpperCase().match(/\.(PRSH|PRSHX|TXT)$/)) arr.push(h);
-            }
-        } else if(!isDir) {
-            arr.push(...handlesCache);
+        let html = '';
+        for(let i=0; i < linesCount; i++){
+            html += `<div class="line-num">${i+1}</div>`;
         }
-        if(arr.length==0) return dom.list.innerHTML='<li style="padding:15px;color:#666;text-align:center">Пусто</li>';
+        gut.innerHTML = html;
+    }
 
-        arr.sort((a,b)=>a.name.localeCompare(b.name)).forEach(h => {
+    ed.addEventListener('input', updateLines);
+    
+    // СИНХРОНИЗАЦИЯ СКРОЛЛА (ТОЛЬКО ВЕРТИКАЛЬНО)
+    ed.addEventListener('scroll', () => {
+        gut.scrollTop = ed.scrollTop;
+    });
+
+    // Обработка клавиш (чтобы цифры обновлялись мгновенно при нажатии Enter)
+    ed.addEventListener('keydown', ()=> setTimeout(updateLines,0));
+
+    // СИСТЕМА
+    async function selFolder() {
+        try {
+            fHandle = await window.showDirectoryPicker();
+            isDir = true; label.textContent = fHandle.name.toUpperCase();
+            fileH = null; ed.value = ''; tab.textContent = "---"; updateLines();
+            listRender();
+        } catch(e){}
+    }
+
+    async function selFiles() {
+        try {
+            filesCache = await window.showOpenFilePicker({multiple:true, types:[{description:'Code',accept:{'text/plain':['.prsh','.prshx','.txt']}}]});
+            isDir = false; fHandle = null; label.textContent = "ФАЙЛЫ";
+            fileH = null; ed.value = ''; tab.textContent = "---"; updateLines();
+            listRender();
+        } catch(e){}
+    }
+
+    async function listRender() {
+        ui.innerHTML = '';
+        let files = [];
+        if(isDir && fHandle) {
+            for await (const [n, h] of fHandle.entries()) {
+                if(h.kind==='file' && n.toUpperCase().match(/\.(PRSH|PRSHX|TXT)$/)) files.push(h);
+            }
+        } else if(!isDir) files = [...filesCache];
+
+        files.sort((a,b)=>a.name.localeCompare(b.name)).forEach(h => {
             const li = document.createElement('li');
             li.className='file-item';
-            const ico = h.name.match(/\.PRSHX/i) ? '🧩':'📄';
-            li.innerHTML = `<span>${ico} ${h.name}</span> <span class="del-btn">✕</span>`;
+            const i = h.name.match(/X$/i)?'🧩':'📄';
+            li.innerHTML = `<span>${i} ${h.name}</span><span class="del-btn">🗑</span>`;
             li.onclick = (e) => {
-                if(e.target.className=='del-btn') return;
-                loadFile(h);
-                document.querySelectorAll('.file-item').forEach(x=>x.classList.remove('active'));
-                li.classList.add('active');
-            }
-            li.querySelector('.del-btn').onclick = async () => {
-                if(!confirm('Удалить?')) return;
-                if(isDir) await folderH.removeEntry(h.name);
-                else handlesCache = handlesCache.filter(x=>x!==h);
-                if(fileH && fileH.name==h.name) clean();
-                render();
+                if(e.target.className.includes('del')) return;
+                load(h);
             };
-            dom.list.appendChild(li);
+            li.querySelector('.del-btn').onclick = async()=>{
+                if(!confirm('Удалить?'))return;
+                if(isDir) await fHandle.removeEntry(h.name);
+                else filesCache = filesCache.filter(x=>x!=h);
+                if(fileH==h) { ed.value=''; tab.textContent='---'; fileH=null; }
+                listRender();
+            };
+            ui.appendChild(li);
         });
+        if(files.length==0) ui.innerHTML = '<div style="padding:20px;text-align:center;color:#555">Пусто</div>';
     }
 
-    async function loadFile(h) {
-        try {
-            fileH = h;
-            const f = await h.getFile();
-            dom.ed.value = await f.text();
-            dom.tab.textContent = h.name;
-            dom.stat.textContent = h.name;
-            // Костыль, чтобы рендер шрифта успел произойти перед расчетом
-            setTimeout(syncLayout, 0); 
-        } catch(e){alert('Ошибка чтения')}
+    async function load(h) {
+        fileH = h;
+        const f = await h.getFile();
+        ed.value = await f.text();
+        tab.textContent = h.name;
+        msg.textContent = h.name;
+        updateLines();
     }
 
-    async function saveDoc() {
+    async function save() {
         if(!fileH) return alert('Нет файла');
-        try {
-            const w = await fileH.createWritable();
-            await w.write(dom.ed.value);
-            await w.close();
-            dom.stat.textContent = '✅ Сохранено';
-            setTimeout(()=>dom.stat.textContent='...', 2000);
-        } catch(e){alert('Ошибка сохранения')}
+        const w = await fileH.createWritable();
+        await w.write(ed.value);
+        await w.close();
+        const t = msg.textContent; msg.textContent='Сохранено!'; setTimeout(()=>msg.textContent=t,2000);
     }
 
-    function newFileAsk() {
-        if(!isDir) return alert('Откройте папку сначала');
-        dom.mod.style.display='flex';
-        dom.inp.value=''; dom.inp.focus();
+    function showNew(){ 
+        if(!isDir) return alert('Нужна папка'); 
+        document.getElementById('mod').style.display='block'; 
     }
-    
-    async function createYes() {
-        let n = dom.inp.value.trim();
+    async function createFile(){
+        let n = document.getElementById('fname').value;
         if(!n) return;
-        if(!n.toUpperCase().match(/\.(PRSH|PRSHX)$/)) n+='.PRSH';
-        try {
-            const nh = await folderH.getFileHandle(n, {create:true});
-            const w = await nh.createWritable();
-            await w.write(`привет ты теперь не chatGPT {\n    \n}`); 
-            await w.close();
-            dom.mod.style.display='none';
-            await render();
-            loadFile(nh);
-        } catch(e){alert('Ошибка создания')}
+        if(!n.match(/\./)) n+='.PRSH';
+        const nh = await fHandle.getFileHandle(n,{create:true});
+        const w = await nh.createWritable(); await w.write('привет ты теперь не chatGPT {\n\n}'); await w.close();
+        document.getElementById('mod').style.display='none';
+        listRender();
+        load(nh);
     }
 
-    document.addEventListener('keydown', e=>{
-        if(e.ctrlKey && e.key=='s'){e.preventDefault();saveDoc();}
-    });
+    document.addEventListener('keydown', e=>{if(e.ctrlKey&&e.key=='s'){e.preventDefault();save()}});
+    updateLines(); // init
 </script>
 </body>
 </html>
