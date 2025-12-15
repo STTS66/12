@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Roode v2.1 (Multi-Save)</title>
+    <title>Roode v2.2 (Menu & Save As)</title>
     <style>
         :root {
             --bg-color: #1e1e1e;
@@ -12,6 +12,8 @@
             --accent-color: #007acc;
             --line-number-color: #858585;
             --header-height: 40px;
+            --menu-bg: #2d2d2d;
+            --menu-hover: #094771;
             
             --editor-font: 'Consolas', 'Monaco', 'Courier New', monospace;
             --editor-size: 14px;
@@ -30,9 +32,11 @@
             height: var(--header-height); background: #333;
             display: flex; align-items: center; padding: 0 10px;
             justify-content: space-between; border-bottom: 1px solid #111; user-select: none;
+            z-index: 20;
         }
-        .controls { display: flex; gap: 6px; }
+        .controls { display: flex; gap: 6px; position: relative; }
         .logo { font-weight: bold; color: white; margin-right: 10px; font-size: 14px;}
+        
         .btn {
             border: none; padding: 5px 10px; border-radius: 3px; cursor: pointer; color: white; 
             font-size: 11px; display: flex; align-items: center; transition: 0.2s; white-space: nowrap;
@@ -40,6 +44,33 @@
         .btn-blue { background: var(--accent-color); } .btn-blue:hover{background:#0062a3;}
         .btn-green { background: #238636; } .btn-green:hover{background:#2ea043;}
         .btn-gray { background: #444; } .btn-gray:hover{background:#555;}
+        
+        /* Dropdown Menu Style */
+        .dropdown {
+            position: absolute;
+            top: 30px;
+            right: 0;
+            background: #252526;
+            border: 1px solid #454545;
+            border-radius: 4px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+            display: none; /* Скрыто по умолчанию */
+            flex-direction: column;
+            min-width: 150px;
+            z-index: 100;
+        }
+        
+        .dropdown.show { display: flex; }
+
+        .dropdown-item {
+            padding: 8px 12px;
+            font-size: 12px;
+            cursor: pointer;
+            color: #ccc;
+            border-bottom: 1px solid #333;
+        }
+        .dropdown-item:last-child { border-bottom: none; }
+        .dropdown-item:hover { background: var(--menu-hover); color: white; }
 
         /* MAIN */
         .workspace { display: flex; flex: 1; height: calc(100vh - var(--header-height) - 25px); }
@@ -76,47 +107,25 @@
         .code-wrapper {
             flex: 1; display: flex; position: relative; overflow: hidden; 
         }
-
         .gutter {
-            width: 45px; flex-shrink: 0;
-            background: #1e1e1e; color: var(--line-number-color);
-            text-align: right; border-right: 1px solid #333;
-            user-select: none; 
-            overflow: hidden; 
-            padding-top: 10px;
-            box-sizing: border-box;
+            width: 45px; flex-shrink: 0; background: #1e1e1e; color: var(--line-number-color);
+            text-align: right; border-right: 1px solid #333; user-select: none; 
+            overflow: hidden; padding-top: 10px; box-sizing: border-box;
         }
         .line-num {
-            height: var(--editor-line-height);
-            line-height: var(--editor-line-height);
-            font-family: var(--editor-font);
-            font-size: var(--editor-size);
-            padding-right: 8px;
+            height: var(--editor-line-height); line-height: var(--editor-line-height);
+            font-family: var(--editor-font); font-size: var(--editor-size); padding-right: 8px;
         }
-
         textarea#editor {
-            flex: 1;
-            background: transparent; border: none; outline: none; resize: none;
-            color: var(--text-color);
-            padding: 10px;
-            box-sizing: border-box;
-            
-            font-family: var(--editor-font);
-            font-size: var(--editor-size);
-            line-height: var(--editor-line-height);
-            tab-size: 4;
-
-            /* NO WRAP (КАК ТЫ ПРОСИЛ В 2.0) */
-            white-space: pre;   
-            overflow-x: scroll; 
-            overflow-y: scroll; 
+            flex: 1; background: transparent; border: none; outline: none; resize: none;
+            color: var(--text-color); padding: 10px; box-sizing: border-box;
+            font-family: var(--editor-font); font-size: var(--editor-size); line-height: var(--editor-line-height);
+            tab-size: 4; white-space: pre; overflow-x: scroll; overflow-y: scroll; 
         }
-
+        
         ::-webkit-scrollbar { width: 10px; height: 10px; }
         ::-webkit-scrollbar-track { background: #1e1e1e; }
         ::-webkit-scrollbar-thumb { background: #424242; border-radius: 5px; }
-        ::-webkit-scrollbar-thumb:hover { background: #4f4f4f; }
-        ::-webkit-scrollbar-corner { background: #1e1e1e; }
 
         footer { height: 25px; background: var(--accent-color); display: flex; align-items: center; padding: 0 15px; color: white; font-size: 11px; }
 
@@ -128,13 +137,22 @@
 <body>
 
 <header>
-    <div class="logo">Roode <span style="font-size:10px;opacity:0.5">2.1 Multi-Save</span></div>
+    <div class="logo">Roode <span style="font-size:10px;opacity:0.5">2.2</span></div>
     <div class="controls">
         <button class="btn btn-blue" onclick="selFolder()">📂 Папка</button>
-        <button class="btn btn-green" onclick="showNew()">➕ Создать</button>
-        <button class="btn btn-gray" onclick="save()">💾 SAVE ALL</button>
-        <div style="width:1px; background:#444; height:18px;"></div>
-        <button class="btn btn-gray" onclick="selFiles()">📄 Отд. Файлы</button>
+        <button class="btn btn-green" onclick="showNew()">➕</button>
+        <button class="btn btn-gray" onclick="save()">💾 Save All</button>
+        <button class="btn btn-gray" onclick="selFiles()">📄 Файлы</button>
+        
+        <!-- КНОПКА МЕНЮ -->
+        <button class="btn btn-gray" style="font-size: 14px; font-weight: bold; padding: 2px 10px;" onclick="toggleMenu(event)">•••</button>
+        
+        <!-- ВЫПАДАЮЩЕЕ МЕНЮ -->
+        <div id="mainMenu" class="dropdown">
+            <div class="dropdown-item" onclick="saveAs()">Сохранить как...</div>
+            <div class="dropdown-item" onclick="exportTxt()">Скачать .txt</div>
+            <div class="dropdown-item" style="color:#ff6b6b" onclick="closeAll()">Закрыть всё</div>
+        </div>
     </div>
 </header>
 
@@ -151,7 +169,7 @@
         
         <div class="code-wrapper">
             <div id="gutter" class="gutter"></div>
-            <textarea id="editor" spellcheck="false" placeholder="// 1. Открой папку ИЛИ загрузи отдельные файлы..."></textarea>
+            <textarea id="editor" spellcheck="false" placeholder="// Меню с тремя точками справа сверху -> Сохранить как..."></textarea>
         </div>
     </div>
 </div>
@@ -166,13 +184,8 @@
 
 <script>
     // VARS
-    let fHandle = null; 
-    let fileH = null;   // Текущий активный файл
-    let isDir = false; 
-    let filesCache = []; // Хранит handles отдельных файлов
-
-    // ЭТО БАЗА: Здесь храним текст файлов в режиме "Отд. Файлы"
-    // { "file1.prsh": "код...", "file2.prsh": "код..." }
+    let fHandle = null, fileH = null, isDir = false;
+    let filesCache = [];
     let projectMemory = {}; 
 
     const ed = document.getElementById('editor');
@@ -181,79 +194,112 @@
     const msg = document.getElementById('msg');
     const tab = document.getElementById('tabInfo');
     const label = document.getElementById('labelHeader');
+    const menu = document.getElementById('mainMenu');
 
     // -- NUMBERS --
     function updateLines() {
         const linesCount = ed.value.split('\n').length;
         let html = '';
-        for(let i=0; i < linesCount; i++){
-            html += `<div class="line-num">${i+1}</div>`;
-        }
+        for(let i=0; i < linesCount; i++){ html += `<div class="line-num">${i+1}</div>`; }
         gut.innerHTML = html;
     }
-
-    // Сохраняем изменения в память при вводе текста
     ed.addEventListener('input', () => {
         updateLines();
-        // Если мы в режиме "Отд. Файлы" и файл открыт - сохраняем в ОЗУ
-        if(!isDir && fileH) {
-            projectMemory[fileH.name] = ed.value;
-        }
+        if(!isDir && fileH) projectMemory[fileH.name] = ed.value;
     });
-
     ed.addEventListener('scroll', () => { gut.scrollTop = ed.scrollTop; });
     ed.addEventListener('keydown', ()=> setTimeout(updateLines,0));
 
-    // -- LOADERS --
+    // -- MENU LOGIC --
+    function toggleMenu(e) {
+        e.stopPropagation();
+        menu.classList.toggle('show');
+    }
     
-    // 1. Папка (Классический режим)
+    // Закрыть меню при клике в любом другом месте
+    window.addEventListener('click', () => {
+        if (menu.classList.contains('show')) menu.classList.remove('show');
+    });
+
+    // 1. SAVE AS (СОХРАНИТЬ КАК)
+    async function saveAs() {
+        try {
+            // Настройки окна сохранения
+            const options = {
+                types: [{
+                    description: 'RuPL Source File',
+                    accept: {'text/plain': ['.PRSH', '.PRSHX']}
+                }],
+                suggestedName: fileH ? 'copy_' + fileH.name : 'Untitled.PRSH'
+            };
+            
+            // Вызываем системный диалог
+            const newHandle = await window.showSaveFilePicker(options);
+            
+            // Записываем текущий текст в новый файл
+            const writable = await newHandle.createWritable();
+            await writable.write(ed.value);
+            await writable.close();
+            
+            // Переключаемся на новый файл
+            notify(`Сохранено как: ${newHandle.name}`);
+            
+            // Добавляем в систему, если мы в режиме отдельных файлов
+            if(!isDir) {
+                filesCache.push(newHandle);
+                projectMemory[newHandle.name] = ed.value;
+            }
+            // Открываем новый файл как активный
+            load(newHandle);
+            listRender(); // Обновляем список, чтобы новый файл появился (если режим файлов)
+
+        } catch (err) {
+            // Пользователь нажал отмену, игнорируем
+            console.log('Save As Cancelled');
+        }
+    }
+
+    // 2. EXPORT TXT
+    function exportTxt() {
+        const blob = new Blob([ed.value], {type:'text/plain'});
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = (fileH ? fileH.name : 'code') + '.txt';
+        a.click();
+        notify("Скачано .txt");
+    }
+    
+    // 3. CLOSE ALL
+    function closeAll() {
+        if(!confirm("Закрыть все файлы? Несохраненные изменения в ОЗУ пропадут.")) return;
+        projectMemory = {}; filesCache = []; fHandle = null; isDir = false;
+        label.textContent = "ПРОВОДНИК";
+        resetEd(); listRender();
+    }
+
+
+    // -- LOADERS --
     async function selFolder() {
         try {
             fHandle = await window.showDirectoryPicker();
             isDir = true; label.textContent = fHandle.name.toUpperCase();
-            
-            // Сброс
-            projectMemory = {};
-            filesCache = [];
-            
-            resetEd();
+            projectMemory = {}; filesCache = [];
+            resetEd(); listRender();
+        } catch(e){}
+    }
+
+    async function selFiles() {
+        try {
+            filesCache = await window.showOpenFilePicker({multiple:true, types:[{description:'Code',accept:{'text/plain':['.prsh','.prshx','.txt']}}]});
+            isDir = false; fHandle = null; label.textContent = "ФАЙЛЫ В ПАМЯТИ";
+            resetEd(); projectMemory = {};
+            for (let h of filesCache) { const f = await h.getFile(); projectMemory[h.name] = await f.text(); }
             listRender();
         } catch(e){}
     }
 
-    // 2. Отд. Файлы (Улучшенный режим)
-    async function selFiles() {
-        try {
-            filesCache = await window.showOpenFilePicker({
-                multiple:true, 
-                types:[{description:'Code',accept:{'text/plain':['.prsh','.prshx','.txt']}}]
-            });
-            isDir = false; 
-            fHandle = null; 
-            label.textContent = "ФАЙЛЫ В ПАМЯТИ";
-            
-            resetEd();
-            
-            // ПРЕДЗАГРУЗКА ВСЕГО В ПАМЯТЬ
-            msg.textContent = "Загрузка...";
-            projectMemory = {};
-            
-            for (let h of filesCache) {
-                const f = await h.getFile();
-                projectMemory[h.name] = await f.text();
-            }
-            
-            msg.textContent = `Загружено ${filesCache.length} файлов`;
-            listRender();
-            
-        } catch(e){
-            console.error(e);
-        }
-    }
-
-    function resetEd() {
-        fileH = null; ed.value = ''; tab.textContent = "---"; updateLines();
-    }
+    function resetEd() { fileH = null; ed.value = ''; tab.textContent = "---"; updateLines(); }
 
     async function listRender() {
         ui.innerHTML = '';
@@ -268,116 +314,59 @@
             const li = document.createElement('li');
             li.className='file-item';
             if(fileH && fileH.name===h.name) li.classList.add('active');
-            
             const ico = h.name.match(/X$/i)?'🧩':'📄';
             li.innerHTML = `<span>${ico} ${h.name}</span><span class="del-btn">🗑</span>`;
-            
-            // CLICK to OPEN
-            li.onclick = (e) => {
-                if(e.target.className.includes('del')) return;
-                load(h);
-            };
-
-            // CLICK to DELETE
+            li.onclick = (e) => { if(!e.target.className.includes('del')) load(h); };
             li.querySelector('.del-btn').onclick = async()=>{
-                if(!confirm('Убрать файл?'))return;
+                if(!confirm('Убрать?'))return;
                 if(isDir) await fHandle.removeEntry(h.name);
-                else {
-                    filesCache = filesCache.filter(x=>x!=h);
-                    delete projectMemory[h.name];
-                }
+                else { filesCache = filesCache.filter(x=>x!=h); delete projectMemory[h.name]; }
                 if(fileH && fileH.name == h.name) resetEd();
                 listRender();
             };
             ui.appendChild(li);
         });
-        if(list.length==0) ui.innerHTML = '<div style="padding:20px;text-align:center;color:#555">Пусто</div>';
     }
 
-    // ОТКРЫТИЕ
     async function load(h) {
         fileH = h;
-        
-        // Визуально обновляем активный пункт
         const items = document.querySelectorAll('.file-item');
         items.forEach(i => i.classList.remove('active'));
-        listRender(); // Полная перерисовка для обновления active (грубо, но надежно)
-
-        if(isDir) {
-            // Если папка - читаем с диска
-            const f = await h.getFile();
-            ed.value = await f.text();
-        } else {
-            // Если файлы - читаем из ПАМЯТИ
-            ed.value = projectMemory[h.name] || "";
-        }
-        
-        tab.textContent = h.name;
-        msg.textContent = h.name;
-        updateLines();
+        listRender();
+        if(isDir) { const f = await h.getFile(); ed.value = await f.text(); } 
+        else { ed.value = projectMemory[h.name] || ""; }
+        tab.textContent = h.name; msg.textContent = h.name; updateLines();
     }
 
-    // === СОХРАНЕНИЕ ===
+    // NORMAL SAVE (Overwrite)
     async function save() {
-        // Проверка: Режим папки
         if(isDir) {
             if(!fileH) return alert('Файл не открыт');
-            // Сохраняем ТОЛЬКО активный файл
-            const w = await fileH.createWritable();
-            await w.write(ed.value);
-            await w.close();
+            const w = await fileH.createWritable(); await w.write(ed.value); await w.close();
             notify(`Сохранен: ${fileH.name}`);
-        } 
-        // Проверка: Режим списка файлов (Fix User Request)
-        else {
-            if(filesCache.length === 0) return alert("Нет загруженных файлов");
-
-            // 1. Обновляем память для текущего файла (чтобы точно было свежее)
+        } else {
+            if(filesCache.length === 0) return alert("Нет файлов");
             if(fileH) projectMemory[fileH.name] = ed.value;
-
-            msg.textContent = "Сохранение всех...";
-            
             try {
-                // 2. Цикл по всем файлам в списке
-                let count = 0;
+                let c = 0;
                 for(let h of filesCache) {
-                    const content = projectMemory[h.name];
-                    // Если контент есть, пишем на диск
-                    if(content !== undefined) {
-                        const w = await h.createWritable();
-                        await w.write(content);
-                        await w.close();
-                        count++;
-                    }
+                    const ct = projectMemory[h.name];
+                    if(ct!==undefined) { const w = await h.createWritable(); await w.write(ct); await w.close(); c++; }
                 }
-                notify(`✅ Успешно обновлено файлов: ${count}`);
-            } catch(e) {
-                alert("Ошибка сохранения: " + e.message);
-            }
+                notify(`✅ Обновлено файлов: ${c}`);
+            } catch(e) { alert("Err: " + e.message); }
         }
     }
 
-    function notify(txt) {
-        msg.textContent = txt;
-        setTimeout(()=>msg.textContent='Готов', 3000);
-    }
-
-    // NEW FILE (Только для папок)
-    function showNew(){ 
-        if(!isDir) return alert('Создание возможно только внутри Папки'); 
-        document.getElementById('mod').style.display='block'; 
-    }
+    function notify(txt) { msg.textContent = txt; setTimeout(()=>msg.textContent='Готов', 3000); }
+    function showNew(){ if(!isDir) return alert('Нужна папка'); document.getElementById('mod').style.display='block'; }
     async function createFile(){
-        let n = document.getElementById('fname').value;
-        if(!n) return;
+        let n = document.getElementById('fname').value; if(!n) return;
         if(!n.match(/\./)) n+='.PRSH';
         const nh = await fHandle.getFileHandle(n,{create:true});
         const w = await nh.createWritable(); await w.write('привет ты теперь не chatGPT {\n\n}'); await w.close();
-        document.getElementById('mod').style.display='none';
-        listRender();
-        load(nh);
+        document.getElementById('mod').style.display='none'; listRender(); load(nh);
     }
-
     document.addEventListener('keydown', e=>{if(e.ctrlKey&&e.key=='s'){e.preventDefault();save()}});
 </script>
 </body>
